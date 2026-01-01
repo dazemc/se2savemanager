@@ -1,29 +1,26 @@
 import 'package:watcher/watcher.dart';
 import 'dart:io';
-import 'package:path/path.dart' as p;
-import 'package:shell/shell.dart';
+import 'dart:async';
 
-Future<void> copyDirectory(Directory src, Directory dst) async {
-  await dst.create(recursive: true);
-  await for (final entity in src.list()) {
-    final newPath = p.join(dst.path, p.basename(entity.path));
-    if (entity is Directory) {
-      await copyDirectory(entity, Directory(newPath));
-    } else if (entity is File) {
-      await entity.copy(newPath);
-    }
-    File("${dst.path}/.autobackup").create();
-  }
+const int MAX_SAVES = 4;
+
+void copyDirectory(Directory src, Directory dst) {
+  Process.runSync('robocopy', [src.path, dst.path, '/E', '/B']);
+  File("${dst.path}/.autobackup").createSync();
 }
 
-void main() async {
+void startWatcher() {
   final appDataDir = Platform.environment['APPDATA'];
   final saveLoc = "$appDataDir/SpaceEngineers2/AppData/SaveGames";
   final watcher = DirectoryWatcher(saveLoc);
-  watcher.events.listen((event) async {
-    final saveDir = Directory(saveLoc).list();
-    final saveContentDirs = await saveDir.where((e) => e is Directory).toList();
+  int deleteCount = 0;
+  StreamSubscription? sub;
+
+  sub = watcher.events.listen((event) {
+    final saveDir = Directory(saveLoc).listSync();
+    final saveContentDirs = saveDir.where((e) => e is Directory).toList();
     if (event.type.toString() != 'remove') {
+      bool isBackup = false;
       final newSaveRawPath = event.path;
       final newSavePath = newSaveRawPath.substring(
         0,
@@ -36,18 +33,36 @@ void main() async {
       final existingSaves = saveContentDirs.where(
         (e) => e.path.contains(newSaveName),
       );
-      final backupSaveDir = Directory(
-        "$saveLoc/${newSaveName}_${existingSaves.length + 1}",
-      );
-      bool isBackup = false;
-      await newSaveDir.list().where((e) => e is File).forEach((c) {
+      newSaveDir.listSync().where((e) => e is File).forEach((c) {
         if (c.path.contains('.autobackup')) {
           isBackup = true;
         }
       });
-      if (!isBackup) {
+      if (newSaveDir.parent.path == saveLoc && !isBackup) {
+        // final count = existingSaves.length;
+        final saveList = existingSaves.toList();
+        saveList.reversed.forEach((e) {
+          if (e.path.contains('_')) {
+            final slot = int.parse(
+              e.path.substring(e.path.lastIndexOf('_') + 1),
+            );
+            final name = "$saveLoc/${newSaveName}_";
+            e.renameSync("$name${slot + 1}");
+            if (slot + 1 > MAX_SAVES) {
+              Directory("$name${slot + 1}").deleteSync(recursive: true);
+            }
+          }
+        });
+        final backupSaveDir = Directory("$saveLoc/${newSaveName}_2");
         copyDirectory(newSaveDir, backupSaveDir);
+        sub?.cancel();
+        Future.delayed(Duration(seconds: 1), startWatcher);
       }
     }
   });
+}
+
+void main() async {
+  startWatcher();
+  // Completer<void>().future;
 }
