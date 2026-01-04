@@ -3,16 +3,15 @@ import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
 
-//TODO: detect child save and then overwrite parent with that child
-// i.e, you load save_3, when you save it should not be save_3_2, it should move current parent to save_2 and save as the new parent save.
-// I'm thinking I'll do what I did with that mermaid port and hash the save, keep a map in the root of the save dir to track managed saves
+const int MAX_SAVES = 2;
+
 class SaveMeta {
   final int slot;
-  final String parent;
+  final Directory parent;
   const SaveMeta({required this.slot, required this.parent});
 
   factory SaveMeta.fromJson(json) {
-    return SaveMeta(slot: json['slot'], parent: json['parent']);
+    return SaveMeta(slot: json['slot'], parent: Directory(json['parent']));
   }
 
   factory SaveMeta.fromDirectory(Directory dir) {
@@ -24,7 +23,7 @@ class SaveMeta {
   }
 
   Map<String, dynamic> toJson() {
-    return {"slot": slot, "parent": parent};
+    return {"slot": slot, "parent": parent.path};
   }
 }
 
@@ -140,8 +139,6 @@ class ContainerMeta {
   };
 }
 
-const int MAX_SAVES = 4;
-
 void copyDirectory({
   required Directory src,
   required Directory dst,
@@ -151,15 +148,15 @@ void copyDirectory({
   final metaLoc = File("${dst.path}/.autobackup");
   metaLoc.createSync();
   final pp = JsonEncoder.withIndent(' ').convert(meta.toJson());
-  metaLoc.writeAsStringSync(pp);
+  metaLoc.writeAsStringSync(pp, mode: .write, flush: true);
 }
 
-bool isAuto(Directory saveDir) {
-  bool isBackup = false;
-  saveDir.listSync().whereType<File>().forEach(
-    (c) => c.path.contains('.autobackup') ? isBackup = true : {},
-  );
-  return isBackup;
+bool isBackup(Directory saveDir) {
+  return saveDir
+      .listSync()
+      .whereType<File>()
+      .firstWhere((c) => c.path.contains('.autobackup'))
+      .existsSync();
 }
 
 File getContainerInfo(Directory dir) {
@@ -187,20 +184,26 @@ void backupAndRenameSaves({
   final existingSaves = <Directory>[];
   for (FileSystemEntity v in likeSaves) {
     v as Directory;
-    isAuto(v) ? existingSaves.add(v) : {};
+    isBackup(v) ? existingSaves.add(v) : {};
   }
-  List<Directory> saveList = existingSaves.toList();
-  saveList.sort((a, b) {
+  existingSaves.sort((a, b) {
     final fileA = getContainerInfo(a).lastModifiedSync();
     final fileB = getContainerInfo(b).lastModifiedSync();
     return fileA.compareTo(fileB);
   });
-  if (saveList.length > MAX_SAVES) saveList.first.deleteSync();
-  for (FileSystemEntity e in saveList) {
+  if (existingSaves.length > MAX_SAVES - 1) {
+    final lastSave = existingSaves.last;
+    print("Deleting oldest save: ${lastSave.path}");
+    lastSave.deleteSync(recursive: true);
+    existingSaves.removeLast();
+  }
+  ;
+  for (FileSystemEntity e in existingSaves) {
     final dir = Directory(e.path);
-    final slot = SaveMeta.fromDirectory(dir).slot;
-    final meta = SaveMeta(slot: slot, parent: saveDir.path);
+    final slot = SaveMeta.fromDirectory(dir).slot + 1;
+    final meta = SaveMeta(slot: slot, parent: saveDir);
     final container = ContainerInfo.fromDirectory(dir);
+    // final containerParent = ContainerInfo.fromDirectory(meta.parent);
     final name = container.value.containerMeta.displayName;
     final newName = '${name.substring(0, name.lastIndexOf('_'))}_$slot';
     final dst = Directory("$saveLoc/$newName");
@@ -209,7 +212,7 @@ void backupAndRenameSaves({
   }
   final backupSaveDir = Directory("$saveLoc/${saveName}_2");
   backupSaveDir.createSync(recursive: true);
-  final meta = SaveMeta(slot: 2, parent: saveDir.path);
+  final meta = SaveMeta(slot: 2, parent: saveDir);
   copyDirectory(
     src: saveDir,
     dst: backupSaveDir,
@@ -257,16 +260,13 @@ void startWatcher() {
           newSaveRawPath.lastIndexOf('\\'),
         );
         final newSaveDir = Directory(newSavePath);
-        final isBackup = isAuto(newSaveDir);
-        if (!isBackup) {
-          backupAndRenameSaves(
-            saveContentDirs: saveContentDirs,
-            saveDir: newSaveDir,
-            saveLoc: saveLoc,
-            saveName: container.value.containerMeta.displayName,
-            containerInfo: container,
-          );
-        }
+        backupAndRenameSaves(
+          saveContentDirs: saveContentDirs,
+          saveDir: newSaveDir,
+          saveLoc: saveLoc,
+          saveName: container.value.containerMeta.displayName,
+          containerInfo: container,
+        );
         restartWatcher(sub);
       }
     }
