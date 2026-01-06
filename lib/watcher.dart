@@ -140,23 +140,41 @@ class ContainerMeta {
 }
 
 void copyDirectory({
+  bool createMetaData = true,
   required Directory src,
   required Directory dst,
   required SaveMeta meta,
 }) {
+  final tmp = File("${dst.path}/.tmp");
+  if (createMetaData) {
+    final metaLoc = File("${dst.path}/.autobackup");
+    metaLoc.createSync(recursive: true);
+    final pp = JsonEncoder.withIndent(' ').convert(meta.toJson());
+    metaLoc.writeAsStringSync(pp, mode: .write, flush: true);
+  } else {
+    tmp.createSync();
+    final backup = Directory('${dst.parent.path}/.backup');
+    if (backup.existsSync()) {
+      backup.deleteSync();
+    }
+    dst.renameSync(backup.path);
+    // dst.deleteSync(recursive: true);
+  }
   Process.runSync('robocopy', [src.path, dst.path, '/E', '/B']);
-  final metaLoc = File("${dst.path}/.autobackup");
-  metaLoc.createSync();
-  final pp = JsonEncoder.withIndent(' ').convert(meta.toJson());
-  metaLoc.writeAsStringSync(pp, mode: .write, flush: true);
 }
 
 bool isBackup(Directory saveDir) {
-  return saveDir
-      .listSync()
-      .whereType<File>()
-      .firstWhere((c) => c.path.contains('.autobackup'))
-      .existsSync();
+  if (saveDir.path.contains('.backups')) {
+    saveDir = saveDir.parent.parent;
+  }
+  return saveDir.listSync().any((c) => c.path.contains('.autobackup'));
+}
+
+bool isIgnored(Directory saveDir) {
+  if (saveDir.path.contains('backups')) {
+    saveDir = saveDir.parent.parent;
+  }
+  return saveDir.listSync().any((c) => c.path.contains('.tmp'));
 }
 
 File getContainerInfo(Directory dir) {
@@ -166,8 +184,20 @@ File getContainerInfo(Directory dir) {
   return cFile as File;
 }
 
+Iterable<FileSystemEntity> getLikeSaves(
+  //TODO:
+  Directory rootSaveDir,
+  String saveName,
+) {
+  return rootSaveDir.listSync().whereType<Directory>().where(
+    (e) => saveName.contains(
+      ContainerInfo.fromDirectory(e).value.containerMeta.displayName,
+    ),
+  );
+}
+
 void backupAndRenameSaves({
-  required List<FileSystemEntity> saveContentDirs,
+  required Directory rootSaveDir,
   required Directory saveDir,
   required String saveLoc,
   required String saveName,
@@ -180,7 +210,9 @@ void backupAndRenameSaves({
   finally create the most recent save by taking a backup of the original
   this keeps the _2 save the most recent at all times and allows the oldest to pop off when MAX_SAVES is hit
   */
-  final likeSaves = saveContentDirs.where((e) => e.path.contains(saveName));
+  final likeSaves = rootSaveDir.listSync().where(
+    (e) => e.path.contains(saveName),
+  ); // TODO: Yeah this doesn't work very well
   final existingSaves = <Directory>[];
   for (FileSystemEntity v in likeSaves) {
     v as Directory;
@@ -203,11 +235,25 @@ void backupAndRenameSaves({
     final slot = SaveMeta.fromDirectory(dir).slot + 1;
     final meta = SaveMeta(slot: slot, parent: saveDir);
     final container = ContainerInfo.fromDirectory(dir);
-    // final containerParent = ContainerInfo.fromDirectory(meta.parent);
-    final name = container.value.containerMeta.displayName;
+    String name = container.value.containerMeta.displayName;
     final newName = '${name.substring(0, name.lastIndexOf('_'))}_$slot';
-    final dst = Directory("$saveLoc/$newName");
-    copyDirectory(src: dir, dst: dst, meta: meta);
+    Directory dst = Directory("$saveLoc/$newName");
+    bool createMeta = true;
+    Directory parent = meta.parent;
+    print(saveDir.path);
+    print(isBackup(saveDir));
+    if (meta.parent.existsSync() && isBackup(saveDir)) {
+      print("backup trying to save");
+      if (meta.parent.path.contains('.backups')) {
+        parent =
+            meta.parent.parent.parent; // TODO: add meta trueParent property
+      }
+      final containerParent = ContainerInfo.fromDirectory(parent);
+      dst = parent;
+      name = containerParent.value.containerMeta.displayName;
+      createMeta = false;
+    }
+    copyDirectory(src: dir, dst: dst, meta: meta, createMetaData: createMeta);
     modifyContainerInfo(dst, container, '$newName');
   }
   final backupSaveDir = Directory("$saveLoc/${saveName}_2");
@@ -243,8 +289,7 @@ void startWatcher() {
   StreamSubscription? sub;
 
   sub = watcher.events.listen((event) {
-    final saveDir = Directory(saveLoc).listSync();
-    final saveContentDirs = saveDir.whereType<Directory>().toList();
+    final rootSaveDir = Directory(saveLoc);
     if (event.type.toString() != 'remove') {
       final newSaveRawPath = event.path;
       if (newSaveRawPath.contains('.container-info')) {
@@ -260,13 +305,20 @@ void startWatcher() {
           newSaveRawPath.lastIndexOf('\\'),
         );
         final newSaveDir = Directory(newSavePath);
-        backupAndRenameSaves(
-          saveContentDirs: saveContentDirs,
-          saveDir: newSaveDir,
-          saveLoc: saveLoc,
-          saveName: container.value.containerMeta.displayName,
-          containerInfo: container,
-        );
+        if (isIgnored(newSaveDir)) {
+          newSaveDir
+              .listSync()
+              .firstWhere((e) => e.path.contains('.tmp'))
+              .deleteSync();
+        } else {
+          backupAndRenameSaves(
+            rootSaveDir: rootSaveDir,
+            saveDir: newSaveDir,
+            saveLoc: saveLoc,
+            saveName: container.value.containerMeta.displayName,
+            containerInfo: container,
+          );
+        }
         restartWatcher(sub);
       }
     }
