@@ -145,6 +145,9 @@ void copyDirectory({
   required Directory dst,
   required SaveMeta meta,
 }) {
+  print("Source: ${src.path}");
+  print("Original destination: ${dst.path}");
+  print("Parent path: ${meta.parent}");
   final tmp = File("${dst.path}/.tmp");
   if (createMetaData) {
     final metaLoc = File("${dst.path}/.autobackup");
@@ -153,13 +156,18 @@ void copyDirectory({
     metaLoc.writeAsStringSync(pp, mode: .write, flush: true);
   } else {
     tmp.createSync();
-    final backup = Directory('${dst.parent.path}/.backup');
+    dst = dst.parent.path.contains('.backups') ? dst.parent.parent : dst;
+    final backup = Directory(
+      '${dst.parent.parent.path}/.backup',
+    ); //TODO: ZIP backup to avoid seeing it in loading screen, up one dir for now
     if (backup.existsSync()) {
-      backup.deleteSync();
+      backup.deleteSync(recursive: true);
     }
-    dst.renameSync(backup.path);
+    Process.runSync('robocopy', [dst.path, backup.path, '/E', '/B']);
+    // dst.renameSync(backup.path);
     // dst.deleteSync(recursive: true);
   }
+  print("Final destination: ${dst.path}");
   Process.runSync('robocopy', [src.path, dst.path, '/E', '/B']);
 }
 
@@ -223,7 +231,7 @@ void backupAndRenameSaves({
     final fileB = getContainerInfo(b).lastModifiedSync();
     return fileA.compareTo(fileB);
   });
-  if (existingSaves.length > MAX_SAVES - 1) {
+  if (existingSaves.length >= MAX_SAVES) {
     final lastSave = existingSaves.last;
     print("Deleting oldest save: ${lastSave.path}");
     lastSave.deleteSync(recursive: true);
@@ -234,9 +242,9 @@ void backupAndRenameSaves({
     final dir = Directory(e.path);
     final slot = SaveMeta.fromDirectory(dir).slot + 1;
     final meta = SaveMeta(slot: slot, parent: saveDir);
-    final container = ContainerInfo.fromDirectory(dir);
+    ContainerInfo container = ContainerInfo.fromDirectory(dir);
     String name = container.value.containerMeta.displayName;
-    final newName = '${name.substring(0, name.lastIndexOf('_'))}_$slot';
+    String newName = '${name.substring(0, name.lastIndexOf('_'))}_$slot';
     Directory dst = Directory("$saveLoc/$newName");
     bool createMeta = true;
     Directory parent = meta.parent;
@@ -245,16 +253,19 @@ void backupAndRenameSaves({
     if (meta.parent.existsSync() && isBackup(saveDir)) {
       print("backup trying to save");
       if (meta.parent.path.contains('.backups')) {
-        parent =
-            meta.parent.parent.parent; // TODO: add meta trueParent property
+        parent = SaveMeta.fromDirectory(
+          meta.parent.parent.parent,
+        ).parent; // TODO: add meta trueParent property
+        container = ContainerInfo.fromDirectory(meta.parent.parent.parent);
+        print("Container location: ${meta.parent.parent.parent}");
+        newName = container.value.containerMeta.displayName;
       }
-      final containerParent = ContainerInfo.fromDirectory(parent);
+      final containerParent = ContainerInfo.fromDirectory(dst);
       dst = parent;
-      name = containerParent.value.containerMeta.displayName;
       createMeta = false;
     }
     copyDirectory(src: dir, dst: dst, meta: meta, createMetaData: createMeta);
-    modifyContainerInfo(dst, container, '$newName');
+    modifyContainerInfo(dst, container, newName);
   }
   final backupSaveDir = Directory("$saveLoc/${saveName}_2");
   backupSaveDir.createSync(recursive: true);
@@ -268,6 +279,9 @@ void backupAndRenameSaves({
 }
 
 void modifyContainerInfo(Directory dir, ContainerInfo container, String name) {
+  print(
+    "Modifying container: ${dir.path} with $name from ${container.value.containerMeta.displayName}",
+  );
   sleep(.new(milliseconds: 200));
   container.value.containerMeta.displayName = name;
   final file = File('${dir.path}/.container-info');
@@ -306,10 +320,17 @@ void startWatcher() {
         );
         final newSaveDir = Directory(newSavePath);
         if (isIgnored(newSaveDir)) {
-          newSaveDir
-              .listSync()
-              .firstWhere((e) => e.path.contains('.tmp'))
-              .deleteSync();
+          Directory tmpSaveDir = newSaveDir;
+          if (tmpSaveDir.path.contains('.backups'))
+            tmpSaveDir = tmpSaveDir.parent.parent;
+          final tmp = File("${tmpSaveDir.path}/.tmp");
+          final metaFile = File("${tmpSaveDir.path}/.autobackup");
+          if (tmp.existsSync()) {
+            tmp.deleteSync();
+            if (metaFile.existsSync()) metaFile.deleteSync();
+          } else {
+            print("unable to find .tmp file...: ${tmp.path}");
+          }
         } else {
           backupAndRenameSaves(
             rootSaveDir: rootSaveDir,
