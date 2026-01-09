@@ -148,15 +148,14 @@ void copyDirectory({
   print("Source: ${src.path}");
   print("Original destination: ${dst.path}");
   print("Parent path: ${meta.parent}");
-  final tmp = File("${dst.path}/.tmp");
   if (createMetaData) {
     final metaLoc = File("${dst.path}/.autobackup");
     metaLoc.createSync(recursive: true);
     final pp = JsonEncoder.withIndent(' ').convert(meta.toJson());
     metaLoc.writeAsStringSync(pp, mode: .write, flush: true);
   } else {
-    tmp.createSync();
     dst = dst.parent.path.contains('.backups') ? dst.parent.parent : dst;
+    File("${dst.path}/.tmp").createSync();
     final backup = Directory(
       '${dst.parent.parent.path}/.backup',
     ); //TODO: ZIP backup to avoid seeing it in loading screen, up one dir for now
