@@ -18,4 +18,13 @@ class SaveWatcher {
       }
     });
   }
+
+  void stop() {
+    _sub.cancel();
+  }
+
+  void restart() {
+    _sub.cancel();
+    start();
+  }
 }

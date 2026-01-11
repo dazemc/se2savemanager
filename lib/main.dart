@@ -1,4 +1,3 @@
-import 'package:hive_ce/hive_ce.dart';
 import 'package:se2savemanager/services/save_manager.dart';
 
 Future<void> main() async {

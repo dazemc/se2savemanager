@@ -24,16 +24,24 @@ class ContainerInfo {
   final ContainerBundles bundles;
   final String type;
   final ContainerValue value;
+  static Future<ContainerInfo> fromDirectory(Directory dir) async {
+    final File containerInfo = await getContainerInfo(dir);
+    final json = jsonDecode(await containerInfo.readAsString());
+    return ContainerInfo.fromJson(json);
+  }
+
   const ContainerInfo({
     required this.bundles,
     required this.type,
     required this.value,
   });
 
-  factory ContainerInfo.fromDirectory(Directory dir) {
-    final json = jsonDecode(getContainerInfo(dir).readAsStringSync());
-    return ContainerInfo.fromJson(json);
-  }
+  // https://www.reddit.com/r/dartlang/comments/t2ko62/async_calls_in_a_factory/
+  // schultek, can't seem to get away from jaspr
+  // factory ContainerInfo.fromDirectory(Directory dir) {
+  //   final json = jsonDecode(getContainerInfo(dir).readAsStringSync());
+  //   return ContainerInfo.fromJson(json);
+  // }
 
   factory ContainerInfo.fromJson(Map<String, dynamic> json) {
     return ContainerInfo(

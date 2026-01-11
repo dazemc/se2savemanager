@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:hive_ce/hive_ce.dart';
 import 'package:se2savemanager/services/save_watcher.dart';
-import 'package:watcher/watcher.dart';
 
 class SaveManager {
   //TODO: Linux
