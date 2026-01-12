@@ -19,12 +19,7 @@ class SaveWatcher {
     });
   }
 
-  void stop() {
-    _sub.cancel();
-  }
-
-  void restart() {
-    _sub.cancel();
-    start();
+  void togglePause() {
+    _sub.isPaused ? _sub.resume() : _sub.pause();
   }
 }

@@ -1,11 +1,19 @@
 import 'dart:io';
+
 import 'package:hive_ce/hive_ce.dart';
+import 'package:logging/logging.dart';
 import 'package:se2savemanager/services/save_watcher.dart';
+
+import 'save_logger.dart';
 
 class SaveManager {
   //TODO: Linux
+  final Logger _log = SaveLogger(name: 'SaveManager').log;
   final String installationDirectoryPath;
   final String spaceEngineersSaveDirectoryPath;
+  late final Box box;
+
+  late final SaveWatcher watcher;
   SaveManager()
     : installationDirectoryPath = Platform.isWindows
           ? '${Platform.environment["APPDATA"]!}/se2savemanager'
@@ -14,8 +22,22 @@ class SaveManager {
           ? '${Platform.environment["APPDATA"]!}/SpaceEngineers2/AppData/SaveGames'
           : '';
 
-  late final Box box;
-  late final SaveWatcher watcher;
+  Future<void> init() async {
+    await _install();
+    Hive.init(installationDirectoryPath);
+    box = await Hive.openBox('se2savemanager');
+    watcher = SaveWatcher(
+      watchPath: spaceEngineersSaveDirectoryPath,
+      onChange: (path) => _eventHandler(path),
+    );
+  }
+
+  void _eventHandler(String path) async {
+    watcher.togglePause();
+    final Directory dir = .new(path);
+    _log.info(path);
+    watcher.togglePause();
+  }
 
   Future<void> _install() async {
     if (installationDirectoryPath.isNotEmpty) {
@@ -31,15 +53,5 @@ class SaveManager {
         throw 'Could not create se2savemanager directory at location: $dir';
       }
     }
-  }
-
-  Future<void> init() async {
-    await _install();
-    Hive.init(installationDirectoryPath);
-    box = await Hive.openBox('se2savemanager');
-    watcher = SaveWatcher(
-      watchPath: spaceEngineersSaveDirectoryPath,
-      onChange: (path) => print(path),
-    );
   }
 }
