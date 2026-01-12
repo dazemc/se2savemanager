@@ -43,14 +43,17 @@ class SaveManager {
     if (installationDirectoryPath.isNotEmpty) {
       final dir = Directory(installationDirectoryPath);
       if (await dir.exists()) {
-        print('se2savemanger already installed');
+        _log.info('se2savemanager already installed');
         //TODO: give option to uninstall/reinstall
         return;
       } else {
         await dir.create();
       }
       if (!await dir.exists()) {
-        throw 'Could not create se2savemanager directory at location: $dir';
+        final msg =
+            'Could not create se2savemanager directory at location: $dir';
+        _log.severe(msg);
+        throw msg;
       }
     }
   }
