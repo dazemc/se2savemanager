@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:fluent_ui/fluent_ui.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:se2savemanager/services/save_logger.dart';
 import 'package:se2savemanager/services/save_manager.dart';
 import 'package:system_theme/system_theme.dart';
@@ -24,9 +25,24 @@ void main() {
     const initialSize = Size(600, 450);
     appWindow.minSize = initialSize;
     appWindow.size = initialSize;
-    appWindow.alignment = Alignment.center;
+    appWindow.alignment = .center;
+    appWindow.title = 'Space Engineers 2 Save Manager';
     appWindow.show();
   });
+}
+
+class Logo extends StatelessWidget {
+  const Logo({super.key});
+  static final String logoName = 'assets/images/se2.svg';
+  @override
+  Widget build(BuildContext context) {
+    return SvgPicture.asset(
+      logoName,
+      semanticsLabel: 'SE2 Logo',
+      width: 25,
+      height: 25,
+    );
+  }
 }
 
 class SaveApp extends StatelessWidget {
@@ -35,15 +51,41 @@ class SaveApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FluentApp(
-      title: "Space Engineers 2 Save Manager",
+      title: 'Space Engineers 2 Save Manager',
       theme: .new(
         brightness: .dark,
         accentColor: SystemTheme.accentColor.accent.toAccentColor(),
       ),
       debugShowCheckedModeBanner: false,
       home: ScaffoldPage(
-        content: Row(mainAxisAlignment: .center, children: [Text('test')]),
+        padding: .only(top: 0),
+        content: Column(
+          children: [
+            WindowTitleBarBox(
+              child: Row(
+                children: [
+                  Logo(),
+                  Expanded(child: MoveWindow()),
+                  WindowButtons(),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+}
+
+class WindowButtons extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        MinimizeWindowButton(),
+        MaximizeWindowButton(),
+        CloseWindowButton(),
+      ],
     );
   }
 }
