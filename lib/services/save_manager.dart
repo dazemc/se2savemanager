@@ -14,6 +14,7 @@ class SaveManager {
   final Logger _log = SaveLogger(name: 'SaveManager').log;
   final String installationDirectoryPath;
   final String spaceEngineersSaveDirectoryPath;
+  late final Directory _spaceEngineersSaveDirectory;
   late final Box box;
 
   late final SaveWatcher watcher;
@@ -23,20 +24,46 @@ class SaveManager {
           : '',
       spaceEngineersSaveDirectoryPath = Platform.isWindows
           ? '${Platform.environment["APPDATA"]!}/SpaceEngineers2/AppData/SaveGames'
-          : '';
+          : '' {
+    _spaceEngineersSaveDirectory = Directory(spaceEngineersSaveDirectoryPath);
+  }
 
   Future<void> init() async {
     await _install();
-    Hive.init(installationDirectoryPath);
-    box = await Hive.openBox('se2savemanager');
+    await _initBox();
+    readLocalSaves();
     watcher = SaveWatcher(
       watchPath: spaceEngineersSaveDirectoryPath,
       onChange: (path) => _eventHandler(path),
     );
   }
 
+  void readLocalSaves() {
+    final saves = box.get('localSaves');
+    _log.info('Current saves: $saves');
+  }
+
+  Future<void> _initBox() async {
+    Hive.init(installationDirectoryPath);
+    box = await Hive.openBox('se2savemanager');
+    await _resetLocalSaveStorage();
+  }
+
+  Future<void> _resetLocalSaveStorage() async {
+    box.delete('localSaves');
+    Map<String, String> saves = {};
+    await for (FileSystemEntity e in _spaceEngineersSaveDirectory.list()) {
+      if (await File('${e.path}/.container-info').exists() && e is Directory) {
+        final save = await Save.fromDirectory(e);
+        saves[save.container.value.containerMeta.displayName] = e.path;
+      }
+    }
+    box.put('localSaves', saves);
+  }
+
   Future<void> _eventHandler(String path) async {
     watcher.togglePause();
+    //
     final Directory dir = .new(path).parent;
     if (await dir.exists()) {
       final save = await Save.fromDirectory(dir);
@@ -44,6 +71,7 @@ class SaveManager {
         "loaded save: '${save.container.value.containerMeta.displayName}', path: '${save.dir.path}'",
       );
     }
+    //
     watcher.togglePause();
   }
 
