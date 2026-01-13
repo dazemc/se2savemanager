@@ -2,6 +2,9 @@ import 'dart:io';
 
 import 'package:hive_ce/hive_ce.dart';
 import 'package:logging/logging.dart';
+import 'package:se2savemanager/models/container_info.dart';
+import 'package:se2savemanager/models/save.dart';
+import 'package:se2savemanager/models/save_meta.dart';
 import 'package:se2savemanager/services/save_watcher.dart';
 
 import 'save_logger.dart';
@@ -32,10 +35,15 @@ class SaveManager {
     );
   }
 
-  void _eventHandler(String path) async {
+  Future<void> _eventHandler(String path) async {
     watcher.togglePause();
-    final Directory dir = .new(path);
-    _log.info(path);
+    final Directory dir = .new(path).parent;
+    if (await dir.exists()) {
+      final save = await Save.fromDirectory(dir);
+      _log.info(
+        "loaded save: '${save.container.value.containerMeta.displayName}', path: '${save.dir.path}'",
+      );
+    }
     watcher.togglePause();
   }
 
