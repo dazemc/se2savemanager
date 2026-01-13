@@ -1,6 +1,7 @@
-import 'package:fluent_ui/fluent_ui.dart';
 import 'dart:io';
 
+import 'package:bitsdojo_window/bitsdojo_window.dart';
+import 'package:fluent_ui/fluent_ui.dart';
 import 'package:se2savemanager/services/save_logger.dart';
 import 'package:se2savemanager/services/save_manager.dart';
 import 'package:system_theme/system_theme.dart';
@@ -17,7 +18,16 @@ import 'package:system_theme/system_theme.dart';
 //   log.info('Non-blocking test');
 // }
 
-void main() => runApp(const SaveApp());
+void main() {
+  runApp(const SaveApp());
+  doWhenWindowReady(() {
+    const initialSize = Size(600, 450);
+    appWindow.minSize = initialSize;
+    appWindow.size = initialSize;
+    appWindow.alignment = Alignment.center;
+    appWindow.show();
+  });
+}
 
 class SaveApp extends StatelessWidget {
   const SaveApp({super.key});
