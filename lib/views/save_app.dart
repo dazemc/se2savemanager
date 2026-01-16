@@ -1,5 +1,7 @@
 import 'package:bitsdojo_window/bitsdojo_window.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fluent_ui/fluent_ui.dart';
+import 'package:se2savemanager/bloc/save_bloc.dart';
 import 'package:se2savemanager/widgets/logo.dart';
 import 'package:se2savemanager/widgets/titlebar.dart';
 import 'package:system_theme/system_theme.dart';
@@ -15,12 +17,18 @@ class SaveApp extends StatelessWidget {
       title: 'Space Engineers 2 Save Manager',
       theme: .new(
         brightness: .dark,
-        accentColor: SystemTheme.accentColor.accent.toAccentColor(),
+        // accentColor: SystemTheme.accentColor.accent.toAccentColor(),
+        accentColor: SystemAccentColor(
+          Color(0xFFe08b0e),
+        ).accent.toAccentColor(),
       ),
       debugShowCheckedModeBanner: false,
-      home: ScaffoldPage(
-        padding: .only(top: 0),
-        content: Column(children: [SaveAppTitleBar(), SaveAppContent()]),
+      home: BlocProvider(
+        create: (_) => SaveBloc(),
+        child: ScaffoldPage(
+          padding: .only(top: 0),
+          content: Column(children: [SaveAppTitleBar(), SaveAppContent()]),
+        ),
       ),
     );
   }

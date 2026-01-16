@@ -21,6 +21,7 @@ class Logo extends StatelessWidget {
         semanticsLabel: 'SE2 Logo',
         width: width,
         height: height,
+        colorFilter: .mode(Color(0xFFe08b0e), .srcIn),
       ),
     );
   }

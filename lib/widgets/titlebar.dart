@@ -6,11 +6,18 @@ class _WindowButtons extends StatelessWidget {
   const _WindowButtons();
   @override
   Widget build(BuildContext context) {
+    final accent = Color(0xFFe08b0e);
+    final buttonColors = WindowButtonColors(iconNormal: accent);
+    final closeColors = WindowButtonColors(
+      iconNormal: accent,
+      mouseOver: Colors.red,
+      iconMouseOver: Colors.black,
+    );
     return Row(
       children: [
-        MinimizeWindowButton(),
-        MaximizeWindowButton(),
-        CloseWindowButton(),
+        MinimizeWindowButton(colors: buttonColors),
+        MaximizeWindowButton(colors: buttonColors),
+        CloseWindowButton(colors: closeColors),
       ],
     );
   }
