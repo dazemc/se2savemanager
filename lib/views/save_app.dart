@@ -4,6 +4,8 @@ import 'package:se2savemanager/widgets/logo.dart';
 import 'package:se2savemanager/widgets/titlebar.dart';
 import 'package:system_theme/system_theme.dart';
 
+import 'save_app_content.dart';
+
 class SaveApp extends StatelessWidget {
   const SaveApp({super.key});
 
@@ -18,23 +20,7 @@ class SaveApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       home: ScaffoldPage(
         padding: .only(top: 0),
-        content: Column(
-          children: [
-            WindowTitleBarBox(
-              child: Row(
-                children: [
-                  Logo(
-                    padding: .only(top: 8, bottom: 4),
-                    height: 50,
-                    width: 50,
-                  ),
-                  Expanded(child: MoveWindow()),
-                  WindowButtons(),
-                ],
-              ),
-            ),
-          ],
-        ),
+        content: Column(children: [SaveAppTitleBar(), SaveAppContent()]),
       ),
     );
   }
