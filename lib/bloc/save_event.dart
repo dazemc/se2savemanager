@@ -4,6 +4,6 @@ sealed class SaveEvent {
   const SaveEvent();
 }
 
-final class SaveAppStarted extends SaveEvent {
-  const SaveAppStarted();
+final class SaveAppInit extends SaveEvent {
+  const SaveAppInit();
 }

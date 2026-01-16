@@ -10,12 +10,12 @@ part 'save_state.dart';
 
 class SaveBloc extends Bloc<SaveEvent, SaveState> {
   SaveBloc() : super(const SaveInitial()) {
-    on<SaveAppStarted>(_saveInit);
-    add(SaveAppStarted());
+    on<SaveAppInit>(_saveAppInit);
+    add(SaveAppInit());
   }
 
-  Future<void> _saveInit(SaveAppStarted event, Emitter<SaveState> emit) async {
-    emit(const SaveInProgress());
+  Future<void> _saveAppInit(SaveAppInit event, Emitter<SaveState> emit) async {
+    emit(const SaveAppBusy());
     final log = SaveLogger(name: pid.toString()).log;
     final saveManager = SaveManager();
     await saveManager.init();
@@ -25,6 +25,6 @@ class SaveBloc extends Bloc<SaveEvent, SaveState> {
     log.info(name);
     saveManager.watcher.start();
     log.info('Non-blocking test');
-    emit(const SaveComplete());
+    emit(const SaveAppReady());
   }
 }

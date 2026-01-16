@@ -8,21 +8,17 @@ sealed class SaveState extends Equatable {
 }
 
 final class SaveInitial extends SaveState {
-  // getting saves from fs => spinner
   const SaveInitial();
 }
 
-final class SavePause extends SaveState {
-  // watcher pause => updated fs
-  const SavePause();
+final class SaveWatcherPause extends SaveState {
+  const SaveWatcherPause();
 }
 
-final class SaveInProgress extends SaveState {
-  // user action => spinner on action
-  const SaveInProgress();
+final class SaveAppBusy extends SaveState {
+  const SaveAppBusy();
 }
 
-final class SaveComplete extends SaveState {
-  // => ListView
-  const SaveComplete();
+final class SaveAppReady extends SaveState {
+  const SaveAppReady();
 }

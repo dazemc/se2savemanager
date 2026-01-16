@@ -2,9 +2,7 @@ import 'dart:io';
 
 import 'package:hive_ce/hive_ce.dart';
 import 'package:logging/logging.dart';
-import 'package:se2savemanager/models/container_info.dart';
 import 'package:se2savemanager/models/save.dart';
-import 'package:se2savemanager/models/save_meta.dart';
 import 'package:se2savemanager/services/save_watcher.dart';
 
 import 'save_logger.dart';

@@ -1,8 +1,6 @@
-import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:se2savemanager/bloc/save_bloc.dart';
-import 'package:se2savemanager/widgets/logo.dart';
 import 'package:se2savemanager/widgets/titlebar.dart';
 import 'package:system_theme/system_theme.dart';
 

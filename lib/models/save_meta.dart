@@ -6,15 +6,14 @@ class SaveMeta {
   final Directory parent;
   static Future<SaveMeta> fromDirectory(Directory dir) async {
     final metaFile =
-        (dir.list().firstWhere((e) => e.path.contains('.autobackup'))
-                as File)
+        (dir.list().firstWhere((e) => e.path.contains('.autobackup')) as File)
             .readAsString();
     return SaveMeta.fromJson(jsonDecode(await metaFile));
   }
 
   const SaveMeta({required this.slot, required this.parent});
 
-  factory SaveMeta.fromJson(json) {
+  factory SaveMeta.fromJson(dynamic json) {
     return SaveMeta(slot: json['slot'], parent: Directory(json['parent']));
   }
 
