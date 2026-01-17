@@ -5,17 +5,17 @@ import 'package:equatable/equatable.dart';
 import 'package:se2savemanager/services/save_logger.dart';
 import 'package:se2savemanager/services/save_manager.dart';
 
-part 'save_event.dart';
-part 'save_state.dart';
+part 'app_event.dart';
+part 'app_state.dart';
 
-class SaveBloc extends Bloc<SaveEvent, SaveState> {
-  SaveBloc() : super(const SaveInitial()) {
-    on<SaveAppInit>(_saveAppInit);
-    add(SaveAppInit());
+class AppBloc extends Bloc<AppEvent, AppState> {
+  AppBloc() : super(const AppInitial()) {
+    on<AppStart>(_appInit);
+    add(AppStart());
   }
 
-  Future<void> _saveAppInit(SaveAppInit event, Emitter<SaveState> emit) async {
-    emit(const SaveAppBusy());
+  Future<void> _appInit(AppStart event, Emitter<AppState> emit) async {
+    emit(const AppBusy());
     final log = SaveLogger(name: pid.toString()).log;
     final saveManager = SaveManager();
     await saveManager.init();
@@ -25,6 +25,6 @@ class SaveBloc extends Bloc<SaveEvent, SaveState> {
     log.info(name);
     saveManager.watcher.start();
     log.info('Non-blocking test');
-    emit(const SaveAppReady());
+    emit(const AppReady());
   }
 }

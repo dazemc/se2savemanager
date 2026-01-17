@@ -1,6 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fluent_ui/fluent_ui.dart';
-import 'package:se2savemanager/bloc/save_bloc.dart';
+import 'package:se2savemanager/bloc/app/app_bloc.dart';
 import 'package:se2savemanager/widgets/titlebar.dart';
 import 'package:system_theme/system_theme.dart';
 
@@ -22,7 +22,7 @@ class SaveApp extends StatelessWidget {
       ),
       debugShowCheckedModeBanner: false,
       home: BlocProvider(
-        create: (_) => SaveBloc(),
+        create: (_) => AppBloc(),
         child: ScaffoldPage(
           padding: .only(top: 0),
           content: Column(children: [SaveAppTitleBar(), SaveAppContent()]),
