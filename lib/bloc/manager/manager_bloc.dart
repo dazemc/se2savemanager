@@ -9,9 +9,11 @@ part 'manager_state.dart';
 
 class ManagerBloc extends Bloc<ManagerEvent, ManagerState> {
   static final _log = SaveLogger(name: 'ManagerBloc').log;
+  static late final SaveManager saveManager;
   ManagerBloc() : super(const ManagerInitial()) {
     on<ManagerStart>(_managerInit);
     add(ManagerStart());
+    on<ManagerReload>(_managerReload);
   }
 
   Future<void> _managerInit(
@@ -20,7 +22,8 @@ class ManagerBloc extends Bloc<ManagerEvent, ManagerState> {
   ) async {
     try {
       emit(const ManagerBusy());
-      final saveManager = SaveManager();
+      //TODO: need to pass a function here with the emitter so that the dir watcher can use it to emit state
+      saveManager = SaveManager(onChange: _onChange);
       await saveManager.init();
       // saveManager.box.put('name', 'test');
       // final dynamic name = saveManager.box.get('name');
@@ -34,5 +37,20 @@ class ManagerBloc extends Bloc<ManagerEvent, ManagerState> {
       _log.severe(e);
       emit(const ManagerBusy());
     }
+  }
+
+  Future<void> _managerReload(
+    ManagerReload event,
+    Emitter<ManagerState> emit,
+  ) async {
+    emit(ManagerBusy());
+    await saveManager.reload();
+    final saves = await saveManager.getLocalSaves();
+    emit(ManagerReady(saves: saves));
+  }
+
+  Future<void> _onChange(String path) async {
+    _log.info('Change detected at: $path');
+    add(ManagerReload());
   }
 }

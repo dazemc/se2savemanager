@@ -12,11 +12,12 @@ class SaveManager {
   final Logger _log = SaveLogger(name: 'SaveManager').log;
   final String installationDirectoryPath;
   final String spaceEngineersSaveDirectoryPath;
+  final Future<void> Function(String) onChange;
   late final Directory _spaceEngineersSaveDirectory;
   late final Box box;
 
   late final SaveWatcher watcher;
-  SaveManager()
+  SaveManager({required this.onChange})
     : installationDirectoryPath = Platform.isWindows
           ? '${Platform.environment["APPDATA"]!}/se2savemanager'
           : '',
@@ -32,8 +33,14 @@ class SaveManager {
     readLocalSaves();
     watcher = SaveWatcher(
       watchPath: spaceEngineersSaveDirectoryPath,
-      onChange: (path) => _eventHandler(path),
+      //TODO: Pass function
+      onChange: (path) async => await _eventHandlerWrapper(onChange, path),
     );
+  }
+
+  Future<void> reload() async {
+    await _install();
+    await _resetLocalSaveStorage();
   }
 
   void readLocalSaves() {
@@ -57,7 +64,6 @@ class SaveManager {
   }
 
   Future<void> _resetLocalSaveStorage() async {
-    box.delete('localSaves');
     Map<String, String> saves = {};
     await for (FileSystemEntity e in _spaceEngineersSaveDirectory.list()) {
       if (await File('${e.path}/.container-info').exists() && e is Directory) {
@@ -68,17 +74,12 @@ class SaveManager {
     box.put('localSaves', saves);
   }
 
-  Future<void> _eventHandler(String path) async {
+  Future<void> _eventHandlerWrapper(
+    Future<void> Function(String) eventHandler,
+    String path,
+  ) async {
     watcher.togglePause();
-    //
-    final Directory dir = .new(path).parent;
-    if (await dir.exists()) {
-      final save = await Save.fromDirectory(dir);
-      _log.info(
-        "loaded save: '${save.container.value.containerMeta.displayName}', path: '${save.dir.path}'",
-      );
-    }
-    //
+    await eventHandler(path);
     watcher.togglePause();
   }
 

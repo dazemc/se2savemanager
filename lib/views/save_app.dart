@@ -3,7 +3,6 @@ import 'package:fluent_ui/fluent_ui.dart';
 import 'package:se2savemanager/bloc/app/app_bloc.dart';
 import 'package:se2savemanager/bloc/manager/manager_bloc.dart';
 import 'package:se2savemanager/widgets/titlebar.dart';
-import 'package:system_theme/system_theme.dart';
 
 import 'save_app_content.dart';
 

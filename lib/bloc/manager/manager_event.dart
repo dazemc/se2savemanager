@@ -7,3 +7,7 @@ sealed class ManagerEvent {
 class ManagerStart extends ManagerEvent {
   const ManagerStart();
 }
+
+class ManagerReload extends ManagerEvent {
+  const ManagerReload();
+}
