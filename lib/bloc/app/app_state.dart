@@ -16,5 +16,8 @@ final class AppBusy extends AppState {
 }
 
 final class AppReady extends AppState {
-  const AppReady();
+  final List<Save> saves;
+  const AppReady({required this.saves});
+  @override
+  List<Object> get props => [List.unmodifiable(saves)];
 }

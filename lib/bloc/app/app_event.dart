@@ -13,5 +13,6 @@ final class AppManagerBusy extends AppEvent {
 }
 
 final class AppManagerReady extends AppEvent {
-  const AppManagerReady();
+  final List<Save> saves;
+  const AppManagerReady({required this.saves});
 }

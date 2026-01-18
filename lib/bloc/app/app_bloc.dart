@@ -1,6 +1,7 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:se2savemanager/services/save_logger.dart';
+import 'package:se2savemanager/models/save.dart';
 
 part 'app_event.dart';
 part 'app_state.dart';
@@ -16,6 +17,6 @@ class AppBloc extends Bloc<AppEvent, AppState> {
   }
 
   void _appMangerReady(AppManagerReady event, Emitter<AppState> emit) {
-    emit(const AppReady());
+    emit(AppReady(saves: event.saves));
   }
 }

@@ -28,7 +28,7 @@ class SaveAppContent extends StatelessWidget {
             }
           case ManagerReady():
             {
-              appBloc.add(const AppManagerReady());
+              appBloc.add(AppManagerReady(saves: state.saves));
               break;
             }
         }
