@@ -41,6 +41,15 @@ class SaveManager {
     _log.info('Current saves: $saves');
   }
 
+  Future<List<Save>> getLocalSaves() async {
+    final savesRaw = box.get('localSaves') as Map<String, String>;
+    final saves = <Save>[];
+    for (String path in savesRaw.values) {
+      saves.add(await Save.fromPath(path));
+    }
+    return saves;
+  }
+
   Future<void> _initBox() async {
     Hive.init(installationDirectoryPath);
     box = await Hive.openBox('se2savemanager');

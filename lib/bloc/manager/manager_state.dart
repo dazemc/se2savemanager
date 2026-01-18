@@ -16,5 +16,9 @@ class ManagerBusy extends ManagerState {
 }
 
 class ManagerReady extends ManagerState {
-  const ManagerReady();
+  final List<Save> saves;
+  const ManagerReady({required this.saves});
+
+  @override
+  List<Object> get props => [List.unmodifiable(saves)];
 }

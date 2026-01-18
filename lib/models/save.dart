@@ -11,5 +11,7 @@ class Save {
     container: await ContainerInfo.fromDirectory(dir),
     dir: dir,
   );
+  static Future<Save> fromPath(String path) async =>
+      Save.fromDirectory(Directory(path));
   const Save({this.saveMeta, required this.container, required this.dir});
 }
