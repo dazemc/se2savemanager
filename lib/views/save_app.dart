@@ -21,10 +21,8 @@ class SaveApp extends StatelessWidget {
         title: 'Space Engineers 2 Save Manager',
         theme: .new(
           brightness: .dark,
+          accentColor: Color(0xFFe08b0e).toAccentColor(),
           // accentColor: SystemTheme.accentColor.accent.toAccentColor(),
-          accentColor: SystemAccentColor(
-            Color(0xFFe08b0e),
-          ).accent.toAccentColor(),
         ),
         debugShowCheckedModeBanner: false,
         home: ScaffoldPage(
