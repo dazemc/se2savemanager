@@ -7,3 +7,11 @@ sealed class AppEvent {
 final class AppStart extends AppEvent {
   const AppStart();
 }
+
+final class AppManagerBusy extends AppEvent {
+  const AppManagerBusy();
+}
+
+final class AppManagerReady extends AppEvent {
+  const AppManagerReady();
+}
