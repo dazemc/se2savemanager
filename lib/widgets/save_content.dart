@@ -1,3 +1,4 @@
+import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:se2savemanager/bloc/app/app_bloc.dart';
 import 'package:se2savemanager/bloc/manager/manager_bloc.dart';
@@ -8,6 +9,7 @@ Widget _determineSaveContent(
   AppBloc appBloc,
   ManagerBloc managerBloc,
 ) {
+  //TODO: GridView when fullscreen
   return state is AppReady
       ? _saveContent(state, appBloc, managerBloc)
       : Center(child: SizedBox(height: 69, width: 69, child: ProgressRing()));

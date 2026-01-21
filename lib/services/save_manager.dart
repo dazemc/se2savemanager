@@ -58,6 +58,7 @@ class SaveManager {
   }
 
   Future<void> renameSave(String name, String newName) async {
+    await watcher.stop();
     final savesRaw = _getRawSaves();
     final path = savesRaw[name];
     final save = await Save.fromPath(path!);
