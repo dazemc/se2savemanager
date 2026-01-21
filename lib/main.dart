@@ -2,6 +2,7 @@ import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:se2savemanager/views/save_app.dart';
 
+const accentColor = Color(0xFFe08b0e);
 void main() {
   runApp(const SaveApp());
   doWhenWindowReady(() {

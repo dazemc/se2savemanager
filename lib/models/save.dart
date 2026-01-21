@@ -15,7 +15,7 @@ class Save {
     screenshot: await File('${dir.path}/thumb.jpg').readAsBytes(),
   );
   static Future<Save> fromPath(String path) async =>
-      Save.fromDirectory(Directory(path));
+      await Save.fromDirectory(Directory(path));
   const Save({
     this.saveMeta,
     this.screenshot,

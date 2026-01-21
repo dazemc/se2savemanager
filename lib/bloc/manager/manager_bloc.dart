@@ -14,6 +14,7 @@ class ManagerBloc extends Bloc<ManagerEvent, ManagerState> {
     on<ManagerStart>(_managerInit);
     add(ManagerStart());
     on<ManagerReload>(_managerReload);
+    on<ManagerRenameSave>(_managerRenameSave);
   }
 
   Future<void> _managerInit(
@@ -22,14 +23,8 @@ class ManagerBloc extends Bloc<ManagerEvent, ManagerState> {
   ) async {
     try {
       emit(const ManagerBusy());
-      //TODO: need to pass a function here with the emitter so that the dir watcher can use it to emit state
       saveManager = SaveManager(onChange: _onChange);
       await saveManager.init();
-      // saveManager.box.put('name', 'test');
-      // final dynamic name = saveManager.box.get('name');
-      // assert(name is String);
-      // _log.info(name);
-      saveManager.watcher.start();
       final saves = await saveManager.getLocalSaves();
       emit(ManagerReady(saves: saves));
     } catch (e) {
@@ -47,6 +42,18 @@ class ManagerBloc extends Bloc<ManagerEvent, ManagerState> {
     await saveManager.reload();
     final saves = await saveManager.getLocalSaves();
     emit(ManagerReady(saves: saves));
+  }
+
+  Future<void> _managerRenameSave(
+    ManagerRenameSave event,
+    Emitter<ManagerState> emit,
+  ) async {
+    emit(ManagerBusy());
+    if (event.name != event.newName && event.newName.isNotEmpty) {
+      _log.info('Changing name: ${event.name} => ${event.newName}');
+      saveManager.renameSave(event.name, event.newName);
+    }
+    add(ManagerReload());
   }
 
   Future<void> _onChange(String path) async {

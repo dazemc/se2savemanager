@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:hive_ce/hive_ce.dart';
@@ -27,29 +28,8 @@ class SaveManager {
     _spaceEngineersSaveDirectory = Directory(spaceEngineersSaveDirectoryPath);
   }
 
-  Future<void> init() async {
-    await _install();
-    await _initBox();
-    readLocalSaves();
-    watcher = SaveWatcher(
-      watchPath: spaceEngineersSaveDirectoryPath,
-      //TODO: Pass function
-      onChange: (path) async => await _eventHandlerWrapper(onChange, path),
-    );
-  }
-
-  Future<void> reload() async {
-    await _install();
-    await _resetLocalSaveStorage();
-  }
-
-  void readLocalSaves() {
-    final saves = box.get('localSaves');
-    _log.info('Current saves: $saves');
-  }
-
   Future<List<Save>> getLocalSaves() async {
-    final savesRaw = box.get('localSaves') as Map<String, String>;
+    final savesRaw = _getRawSaves();
     final saves = <Save>[];
     for (String path in savesRaw.values) {
       saves.add(await Save.fromPath(path));
@@ -57,21 +37,43 @@ class SaveManager {
     return saves;
   }
 
-  Future<void> _initBox() async {
-    Hive.init(installationDirectoryPath);
-    box = await Hive.openBox('se2savemanager');
+  Future<void> init() async {
+    await _install();
+    await _initBox();
+    readLocalSaves();
+    watcher = SaveWatcher(
+      watchPath: spaceEngineersSaveDirectoryPath,
+      onChange: (path) async => await _eventHandlerWrapper(onChange, path),
+    );
+  }
+
+  void readLocalSaves() {
+    final saves = box.get('localSaves');
+    _log.info('Current saves: $saves');
+  }
+
+  Future<void> reload() async {
+    await _install();
     await _resetLocalSaveStorage();
   }
 
-  Future<void> _resetLocalSaveStorage() async {
-    Map<String, String> saves = {};
-    await for (FileSystemEntity e in _spaceEngineersSaveDirectory.list()) {
-      if (await File('${e.path}/.container-info').exists() && e is Directory) {
-        final save = await Save.fromDirectory(e);
-        saves[save.container.value.containerMeta.displayName] = e.path;
-      }
-    }
-    box.put('localSaves', saves);
+  Future<void> renameSave(String name, String newName) async {
+    await watcher.stop();
+    final savesRaw = _getRawSaves();
+    final path = savesRaw[name];
+    final save = await Save.fromPath(path!);
+    _log.info('Renaming save at: $path');
+    save.container.value.containerMeta.displayName = newName;
+    JsonEncoder encoder = .withIndent(r'  ');
+    final prettyPrint = encoder.convert(save.container.toJson());
+    await File(
+      '$path/.container-info',
+    ).writeAsString(prettyPrint, mode: .write, flush: true);
+    //TODO: retry loop
+    await Future.delayed(const Duration(milliseconds: 50));
+    await save.dir.rename('${save.dir.parent.path}/$newName');
+    await _resetLocalSaveStorage();
+    watcher.start();
   }
 
   Future<void> _eventHandlerWrapper(
@@ -81,6 +83,15 @@ class SaveManager {
     watcher.togglePause();
     await eventHandler(path);
     watcher.togglePause();
+  }
+
+  Map<String, String> _getRawSaves() =>
+      box.get('localSaves') as Map<String, String>;
+
+  Future<void> _initBox() async {
+    Hive.init(installationDirectoryPath);
+    box = await Hive.openBox('se2savemanager');
+    await _resetLocalSaveStorage();
   }
 
   Future<void> _install() async {
@@ -100,5 +111,16 @@ class SaveManager {
         throw msg;
       }
     }
+  }
+
+  Future<void> _resetLocalSaveStorage() async {
+    Map<String, String> saves = {};
+    await for (FileSystemEntity e in _spaceEngineersSaveDirectory.list()) {
+      if (await File('${e.path}/.container-info').exists() && e is Directory) {
+        final save = await Save.fromDirectory(e);
+        saves[save.container.value.containerMeta.displayName] = e.path;
+      }
+    }
+    box.put('localSaves', saves);
   }
 }

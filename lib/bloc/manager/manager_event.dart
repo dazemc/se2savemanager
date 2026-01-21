@@ -11,3 +11,9 @@ class ManagerStart extends ManagerEvent {
 class ManagerReload extends ManagerEvent {
   const ManagerReload();
 }
+
+class ManagerRenameSave extends ManagerEvent {
+  final String newName;
+  final String name;
+  const ManagerRenameSave({required this.name, required this.newName});
+}

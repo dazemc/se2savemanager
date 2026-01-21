@@ -12,7 +12,7 @@ class SaveAppContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocListener<ManagerBloc, ManagerState>(
-      listenWhen: (prev, state) => prev.runtimeType != state.runtimeType,
+      // listenWhen: (prev, state) => prev.runtimeType != state.runtimeType,
       listener: (context, state) {
         final appBloc = context.read<AppBloc>();
         logManager.info(state);
@@ -34,7 +34,7 @@ class SaveAppContent extends StatelessWidget {
         }
       },
       child: BlocBuilder<AppBloc, AppState>(
-        buildWhen: (prev, state) => prev.runtimeType != state.runtimeType,
+        // buildWhen: (prev, state) => prev.runtimeType != state.runtimeType,
         builder: (context, state) {
           log.info(state);
           return Expanded(
@@ -46,7 +46,11 @@ class SaveAppContent extends StatelessWidget {
                   fit: .cover,
                 ),
               ),
-              child: SaveContent(state: state),
+              child: SaveContent(
+                state: state,
+                appBloc: context.read<AppBloc>(),
+                managerBloc: context.read<ManagerBloc>(),
+              ),
             ),
           );
         },
