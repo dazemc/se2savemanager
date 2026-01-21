@@ -95,11 +95,11 @@ class ContainerMeta {
     'BaseMetadata': baseMetadata,
     'DisplayName': displayName,
     'Description': description,
-    "GameVersion": gameVersion,
-    "GameBuildNumber": gameBuildNumber,
-    "SaveGameCreationTimeInTicks": saveCreationTimeInTicks,
-    "PCU": pcu,
-    "UsedDebugMenu": usedDebugMenu,
+    'GameVersion': gameVersion,
+    'GameBuildNumber': gameBuildNumber,
+    'SaveGameCreationTimeInTicks': saveCreationTimeInTicks,
+    'PCU': pcu,
+    'UsedDebugMenu': usedDebugMenu,
   };
 }
 

@@ -26,6 +26,6 @@ class SaveMeta {
   // }
 
   Map<String, dynamic> toJson() {
-    return {"slot": slot, "parent": parent.path};
+    return {'slot': slot, 'parent': parent.path};
   }
 }

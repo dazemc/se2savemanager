@@ -28,6 +28,11 @@ class SaveManager {
     _spaceEngineersSaveDirectory = Directory(spaceEngineersSaveDirectoryPath);
   }
 
+  Future<void> deleteSave(Save save) async {
+    await save.dir.delete();
+    await _resetLocalSaveStorage();
+  }
+
   Future<List<Save>> getLocalSaves() async {
     final savesRaw = _getRawSaves();
     final saves = <Save>[];
@@ -74,11 +79,6 @@ class SaveManager {
     await save.dir.rename('${save.dir.parent.path}/$newName');
     await _resetLocalSaveStorage();
     watcher.start();
-  }
-
-  Future<void> deleteSave(Save save) async {
-    await save.dir.delete();
-    await _resetLocalSaveStorage();
   }
 
   Future<void> _eventHandlerWrapper(

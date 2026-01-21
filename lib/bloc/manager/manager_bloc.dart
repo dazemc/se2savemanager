@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:se2savemanager/models/save.dart';
@@ -18,6 +16,7 @@ class ManagerBloc extends Bloc<ManagerEvent, ManagerState> {
     on<ManagerReload>(_managerReload);
     on<ManagerRenameSave>(_managerRenameSave);
     on<ManagerDeleteSave>(_managerDeleteSave);
+    on<ManagerCopySave>(_managerCopySave);
   }
 
   Future<void> _managerInit(
@@ -68,13 +67,28 @@ class ManagerBloc extends Bloc<ManagerEvent, ManagerState> {
     ManagerDeleteSave event,
     Emitter<ManagerState> emit,
   ) async {
+    //TODO: do this in service not here
     emit(ManagerBusy());
-    final path = (saveManager.box as Map<String, String>).values.first;
-    final save = Directory(path);
+    final saves = await saveManager.getLocalSaves();
+    final save = saves
+        .firstWhere(
+          (e) => e.container.value.containerMeta.displayName == event.name,
+        )
+        .dir;
     if (await save.exists()) {
       _log.warning('Deleting save: ${event.name}');
-      await save.delete();
+      await save.delete(recursive: true);
     }
+    emit(ManagerReady(saves: await saveManager.getLocalSaves()));
+  }
+
+  Future<void> _managerCopySave(
+    ManagerCopySave event,
+    Emitter<ManagerState> emit,
+  ) async {
+    emit(ManagerBusy());
+    _log.info('Copying save: ${event.name}');
+    //TODO: keep the parent entry with any copy as a child box[name]['children']
     emit(ManagerReady(saves: await saveManager.getLocalSaves()));
   }
 }
