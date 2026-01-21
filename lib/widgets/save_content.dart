@@ -22,20 +22,19 @@ ListView _saveContent(List<Save> saves) {
     itemCount: saves.length,
     itemBuilder: (context, index) {
       final save = saves[index];
-      final name = save.container.value.containerMeta.displayName;
-      final gameVersion = save.container.value.containerMeta.gameVersion;
-      final pcu = save.container.value.containerMeta.pcu;
-      final ticks = save.container.value.containerMeta.saveCreationTimeInTicks;
+      final meta = save.container.value.containerMeta;
+      final screenshot = Image.memory(save.screenshot!);
+      final name = meta.displayName;
+      final gameVersion = meta.gameVersion;
+      final pcu = meta.pcu;
+      final ticks = meta.saveCreationTimeInTicks;
       return ListTile.selectable(
         leading: SizedBox(
           height: 100,
           child: AspectRatio(
             aspectRatio: 16 / 9,
             //TODO: screenshot
-            child: ColoredBox(
-              color: Colors.accentColors[index ~/ 20],
-              child: const Placeholder(),
-            ),
+            child: screenshot,
           ),
         ),
         title: Text(name),
