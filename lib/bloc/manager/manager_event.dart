@@ -17,3 +17,13 @@ class ManagerRenameSave extends ManagerEvent {
   final String name;
   const ManagerRenameSave({required this.name, required this.newName});
 }
+
+class ManagerDeleteSave extends ManagerEvent {
+  final String name;
+  const ManagerDeleteSave({required this.name});
+}
+
+class ManagerCopySave extends ManagerEvent {
+  final String name;
+  const ManagerCopySave({required this.name});
+}

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:se2savemanager/models/save.dart';
@@ -15,6 +17,7 @@ class ManagerBloc extends Bloc<ManagerEvent, ManagerState> {
     add(ManagerStart());
     on<ManagerReload>(_managerReload);
     on<ManagerRenameSave>(_managerRenameSave);
+    on<ManagerDeleteSave>(_managerDeleteSave);
   }
 
   Future<void> _managerInit(
@@ -59,5 +62,19 @@ class ManagerBloc extends Bloc<ManagerEvent, ManagerState> {
   Future<void> _onChange(String path) async {
     _log.info('Change detected at: $path');
     add(ManagerReload());
+  }
+
+  Future<void> _managerDeleteSave(
+    ManagerDeleteSave event,
+    Emitter<ManagerState> emit,
+  ) async {
+    emit(ManagerBusy());
+    final path = (saveManager.box as Map<String, String>).values.first;
+    final save = Directory(path);
+    if (await save.exists()) {
+      _log.warning('Deleting save: ${event.name}');
+      await save.delete();
+    }
+    emit(ManagerReady(saves: await saveManager.getLocalSaves()));
   }
 }

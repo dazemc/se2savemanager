@@ -12,6 +12,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     on<AppSaveNameEdit>(_appSaveNameEdit);
     on<AppSaveNameChange>(_appSaveNameChange);
     on<AppSaveNameDone>(_appSaveNameDone);
+    on<AppSaveNameCancel>(_appSaveNameCancel);
   }
 
   void _appMangerBusy(AppManagerBusy event, Emitter<AppState> emit) {
@@ -40,6 +41,13 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     if (state is AppReady) {
       final readyState = state as AppReady;
       emit(AppBusy());
+    }
+  }
+
+  void _appSaveNameCancel(AppSaveNameCancel event, Emitter<AppState> emit) {
+    if (state is AppReady) {
+      final readyState = state as AppReady;
+      emit(readyState.copyWith(editingIndex: -1, editingName: null));
     }
   }
 }

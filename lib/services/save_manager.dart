@@ -58,7 +58,6 @@ class SaveManager {
   }
 
   Future<void> renameSave(String name, String newName) async {
-    await watcher.stop();
     final savesRaw = _getRawSaves();
     final path = savesRaw[name];
     final save = await Save.fromPath(path!);
@@ -74,6 +73,11 @@ class SaveManager {
     await save.dir.rename('${save.dir.parent.path}/$newName');
     await _resetLocalSaveStorage();
     watcher.start();
+  }
+
+  Future<void> deleteSave(Save save) async {
+    await save.dir.delete();
+    await _resetLocalSaveStorage();
   }
 
   Future<void> _eventHandlerWrapper(

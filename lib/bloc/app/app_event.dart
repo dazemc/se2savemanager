@@ -31,3 +31,7 @@ final class AppSaveNameDone extends AppEvent {
   final String name;
   const AppSaveNameDone({required this.name});
 }
+
+final class AppSaveNameCancel extends AppEvent {
+  const AppSaveNameCancel();
+}

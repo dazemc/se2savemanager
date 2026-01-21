@@ -3,22 +3,6 @@ import 'package:se2savemanager/bloc/app/app_bloc.dart';
 import 'package:se2savemanager/bloc/manager/manager_bloc.dart';
 import 'package:se2savemanager/main.dart';
 
-class SaveContent extends StatelessWidget {
-  final AppState state;
-  final AppBloc appBloc;
-  final ManagerBloc managerBloc;
-  const SaveContent({
-    super.key,
-    required this.state,
-    required this.appBloc,
-    required this.managerBloc,
-  });
-  @override
-  Widget build(BuildContext context) {
-    return _determineSaveContent(state, appBloc, managerBloc);
-  }
-}
-
 Widget _determineSaveContent(
   AppState state,
   AppBloc appBloc,
@@ -35,7 +19,6 @@ ListView _saveContent(
   ManagerBloc managerBloc,
 ) {
   state as AppReady;
-  print(state.editingIndex);
   final saves = state.saves;
   return ListView.builder(
     itemCount: saves.length,
@@ -48,87 +31,174 @@ ListView _saveContent(
       final pcu = meta.pcu;
       final ticks = meta.saveCreationTimeInTicks;
       final buildNumber = meta.gameBuildNumber;
-      return ListTile.selectable(
-        leading: SizedBox(
-          height: 100,
-          child: AspectRatio(
-            aspectRatio: 16 / 9,
-            //TODO: screenshot
-            child: Container(
-              decoration: BoxDecoration(
-                border: .all(color: accentColor.toAccentColor().darkest),
-              ),
-              child: screenshot,
-            ),
-          ),
-        ),
-        title: state.editingIndex == index
-            ? Row(
-                children: [
-                  Expanded(
-                    child: TextBox(
-                      placeholder: name,
-                      maxLines: 1,
-                      onChanged: (value) =>
-                          appBloc.add(AppSaveNameChange(name: value)),
-                      onSubmitted: (value) {
-                        managerBloc.add(
-                          ManagerRenameSave(name: name, newName: value),
-                        );
-                      },
-                    ),
+      return Padding(
+        padding: .all(2),
+        child: Align(
+          alignment: .centerLeft,
+          child: Column(
+            children: [
+              SizedBox(
+                width: 600,
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: .circular(8),
+                    border: .all(color: Colors.grey),
                   ),
-                  IconButton(
-                    icon: WindowsIcon(
-                      FluentIcons.accept,
-                      size: 10,
-                      color: Colors.blue.toAccentColor().lightest,
+                  child: ListTile(
+                    leading: SizedBox(
+                      height: 156,
+                      child: AspectRatio(
+                        aspectRatio: 16 / 9,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            border: .all(
+                              color: accentColor.toAccentColor().darkest,
+                            ),
+                          ),
+                          child: screenshot,
+                        ),
+                      ),
                     ),
-                    onPressed: () => managerBloc.add(
-                      ManagerRenameSave(
-                        name: name,
-                        newName: state.editingName ?? name,
+                    title: Row(
+                      children: [
+                        state.editingIndex == index
+                            ? Row(
+                                children: [
+                                  SizedBox(
+                                    width: 182,
+                                    child: TextBox(
+                                      placeholder: name,
+                                      maxLines: 1,
+                                      onChanged: (value) => appBloc.add(
+                                        AppSaveNameChange(name: value),
+                                      ),
+                                      onSubmitted: (value) {
+                                        managerBloc.add(
+                                          ManagerRenameSave(
+                                            name: name,
+                                            newName: value,
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                  Tooltip(
+                                    message: 'Accept',
+                                    child: IconButton(
+                                      icon: WindowsIcon(
+                                        FluentIcons.accept,
+                                        size: 10,
+                                        color: Colors.blue.lightest,
+                                      ),
+                                      onPressed: () => managerBloc.add(
+                                        ManagerRenameSave(
+                                          name: name,
+                                          newName: state.editingName ?? name,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  Tooltip(
+                                    message: 'Cancel',
+                                    child: IconButton(
+                                      icon: WindowsIcon(
+                                        FluentIcons.cancel,
+                                        size: 10,
+                                        color: Colors.red.lightest,
+                                      ),
+                                      onPressed: () =>
+                                          appBloc.add(AppSaveNameCancel()),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Row(
+                                crossAxisAlignment: .start,
+                                children: [
+                                  Text(name, style: .new(color: accentColor)),
+                                  Tooltip(
+                                    message: 'Rename',
+                                    child: IconButton(
+                                      icon: WindowsIcon(
+                                        FluentIcons.edit,
+                                        size: 10,
+                                        color: Colors.blue.lightest,
+                                      ),
+                                      onPressed: () => appBloc.add(
+                                        AppSaveNameEdit(index: index),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                        Spacer(),
+                        Tooltip(
+                          message: 'Copy',
+                          child: IconButton(
+                            icon: WindowsIcon(
+                              FluentIcons.copy,
+                              size: 10,
+                              color: Colors.green.lightest,
+                            ),
+                            onPressed: () =>
+                                managerBloc.add(ManagerDeleteSave(name: name)),
+                          ),
+                        ),
+                        Tooltip(
+                          message: 'Delete',
+                          child: IconButton(
+                            icon: WindowsIcon(
+                              FluentIcons.delete,
+                              size: 10,
+                              color: Colors.red.lightest,
+                            ),
+                            onPressed: () =>
+                                managerBloc.add(ManagerDeleteSave(name: name)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    subtitle: SizedBox(
+                      height: 150,
+                      child: Expander(
+                        header: Text(
+                          'Metadata',
+                          style: .new(fontStyle: .italic),
+                        ),
+                        content: Column(
+                          crossAxisAlignment: .start,
+                          children: [
+                            Text('PCU: $pcu'),
+                            Text('Version: $gameVersion'),
+                            Text('Ticks: $ticks'),
+                            Text('Build Number: $buildNumber'),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                  IconButton(
-                    icon: WindowsIcon(
-                      FluentIcons.cancel,
-                      size: 10,
-                      color: Colors.red.toAccentColor().lightest,
-                    ),
-                    onPressed: () => appBloc.add(AppSaveNameEdit(index: -1)),
-                  ),
-                ],
-              )
-            : Row(
-                mainAxisSize: .min,
-                crossAxisAlignment: .start,
-                children: [
-                  Text(name, style: .new(color: accentColor)),
-                  IconButton(
-                    icon: WindowsIcon(
-                      FluentIcons.edit,
-                      size: 10,
-                      color: Colors.blue.toAccentColor().lightest,
-                    ),
-                    onPressed: () => appBloc.add(AppSaveNameEdit(index: index)),
-                  ),
-                ],
+                ),
               ),
-        subtitle: Column(
-          crossAxisAlignment: .start,
-          children: [
-            Text('PCU: $pcu'),
-            Text('Version: $gameVersion'),
-            Text('Ticks: $ticks'),
-            Text('Build Number: $buildNumber'),
-          ],
+            ],
+          ),
         ),
-        selectionMode: .single,
-        // selected: , //TODO:
-        // onSelectionChange: (v) => bloc, //TODO:
       );
     },
   );
+}
+
+class SaveContent extends StatelessWidget {
+  final AppState state;
+  final AppBloc appBloc;
+  final ManagerBloc managerBloc;
+  const SaveContent({
+    super.key,
+    required this.state,
+    required this.appBloc,
+    required this.managerBloc,
+  });
+  @override
+  Widget build(BuildContext context) {
+    return _determineSaveContent(state, appBloc, managerBloc);
+  }
 }
