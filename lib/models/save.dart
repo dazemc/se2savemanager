@@ -1,8 +1,7 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
-
 import 'container_info.dart';
 import 'save_meta.dart';
+import 'dart:typed_data';
 
 class Save {
   final SaveMeta? saveMeta;
