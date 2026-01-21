@@ -69,8 +69,8 @@ ListView _saveContent(
                     child: TextBox(
                       placeholder: name,
                       maxLines: 1,
-                      // onChanged: (value) =>
-                      // appBloc.add(AppSaveNameChange(name: value)),
+                      onChanged: (value) =>
+                          appBloc.add(AppSaveNameChange(name: value)),
                       onSubmitted: (value) {
                         managerBloc.add(
                           ManagerRenameSave(name: name, newName: value),
@@ -84,7 +84,12 @@ ListView _saveContent(
                       size: 10,
                       color: Colors.blue.toAccentColor().lightest,
                     ),
-                    onPressed: () => appBloc.add(AppSaveNameEdit(index: -1)),
+                    onPressed: () => managerBloc.add(
+                      ManagerRenameSave(
+                        name: name,
+                        newName: state.editingName ?? name,
+                      ),
+                    ),
                   ),
                   IconButton(
                     icon: WindowsIcon(
