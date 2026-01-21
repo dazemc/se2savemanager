@@ -6,3 +6,9 @@
 
 
 Space Engineers 2 Save Manager, WIP.
+
+☑ File/Directory watcher to sync with changes
+
+☑ Rename saves
+
+![Screenshot](./.repo/screenshot.png "Screenshot")

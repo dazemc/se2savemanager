@@ -119,7 +119,7 @@ ListView _saveContent(
         subtitle: Column(
           crossAxisAlignment: .start,
           children: [
-            Text('PCU:$pcu'),
+            Text('PCU: $pcu'),
             Text('Version: $gameVersion'),
             Text('Ticks: $ticks'),
             Text('Build Number: $buildNumber'),
