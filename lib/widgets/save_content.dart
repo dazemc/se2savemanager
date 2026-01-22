@@ -142,7 +142,7 @@ ListView _saveContent(
                               color: Colors.green.lightest,
                             ),
                             onPressed: () =>
-                                managerBloc.add(ManagerCopySave(name: name)),
+                                managerBloc.add(ManagerCopySave(save: save)),
                           ),
                         ),
                         Tooltip(

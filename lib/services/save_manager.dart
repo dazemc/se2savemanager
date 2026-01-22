@@ -2,7 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:hive_ce/hive_ce.dart';
+import 'package:io/io.dart';
 import 'package:logging/logging.dart';
+import 'package:se2savemanager/models/managed_save.dart';
 import 'package:se2savemanager/models/save.dart';
 import 'package:se2savemanager/services/save_watcher.dart';
 
@@ -26,6 +28,22 @@ class SaveManager {
           ? '${Platform.environment["APPDATA"]!}/SpaceEngineers2/AppData/SaveGames'
           : '' {
     _spaceEngineersSaveDirectory = Directory(spaceEngineersSaveDirectoryPath);
+  }
+
+  Future<void> copySave(Save save) async {
+    //TODO: check if parent and if null, then check/count children and add with path
+    // will also need to check if path is in .backups at some point
+    final name = save.container.value.containerMeta.displayName;
+    final path = save.dir.path;
+    final parent = box.get('managedSaves', defaultValue: {});
+    parent[name] ?? _log.info('Copying unmanaged save');
+    final newPath = '$path 2';
+    _log.info('New path: $newPath');
+    // copyPath(path, )
+    // box.put('managedSaves', {
+    //   name: {'path': path, 'children': {}},
+    // });
+    _log.info('Copying save: $name at $path');
   }
 
   Future<void> deleteSave(Save save) async {

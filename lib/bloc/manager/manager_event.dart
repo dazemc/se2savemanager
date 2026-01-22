@@ -24,6 +24,6 @@ class ManagerDeleteSave extends ManagerEvent {
 }
 
 class ManagerCopySave extends ManagerEvent {
-  final String name;
-  const ManagerCopySave({required this.name});
+  final Save save;
+  const ManagerCopySave({required this.save});
 }
