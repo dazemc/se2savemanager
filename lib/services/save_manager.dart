@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:hive_ce/hive_ce.dart';
-import 'package:io/io.dart';
 import 'package:logging/logging.dart';
 import 'package:se2savemanager/models/managed_save.dart';
 import 'package:se2savemanager/models/save.dart';
@@ -37,9 +36,12 @@ class SaveManager {
     final path = save.dir.path;
     final parent = box.get('managedSaves', defaultValue: {});
     parent[name] ?? _log.info('Copying unmanaged save');
-    final newPath = '$path 2';
+    final newPath = '$path 2'; //TODO
     _log.info('New path: $newPath');
-    // copyPath(path, )
+    await _copyPath(path, newPath);
+    final newSave = await Save.fromPath(newPath);
+    newSave.container.value.containerMeta.displayName = '$name 2';
+
     // box.put('managedSaves', {
     //   name: {'path': path, 'children': {}},
     // });
@@ -84,19 +86,74 @@ class SaveManager {
     await watcher.stop();
     final savesRaw = _getRawSaves();
     final path = savesRaw[name];
-    final save = await Save.fromPath(path!);
+    final newSave = await Save.fromPath(path!);
     _log.info('Renaming save at: $path');
-    save.container.value.containerMeta.displayName = newName;
+    newSave.container.value.containerMeta.displayName = newName;
+    await _writeContainer(newSave, path, newName);
+
+    for (int i = 0; i < 10; i++) {
+      if (newSave.container.value.containerMeta.displayName == newName) {
+        break;
+      }
+      try {
+        await newSave.dir.rename('${newSave.dir.parent.path}/$newName');
+        break;
+      } on FileSystemException catch (_) {
+        await Future.delayed(const Duration(milliseconds: 50));
+        _log.warning('Waiting for filesystem to be free...');
+      }
+    }
+    await _resetLocalSaveStorage();
+    watcher.start();
+  }
+
+  Future<void> _writeContainer(Save save, String path, String newName) async {
     JsonEncoder encoder = .withIndent(r'  ');
     final prettyPrint = encoder.convert(save.container.toJson());
     await File(
       '$path/.container-info',
     ).writeAsString(prettyPrint, mode: .write, flush: true);
-    //TODO: retry loop
-    await Future.delayed(const Duration(milliseconds: 50));
-    await save.dir.rename('${save.dir.parent.path}/$newName');
-    await _resetLocalSaveStorage();
-    watcher.start();
+    for (int i = 0; i < 10; i++) {
+      try {
+        await save.dir.rename('${save.dir.parent.path}/$newName');
+      } on FileSystemException catch (_) {
+        await Future.delayed(const Duration(milliseconds: 50));
+      }
+    }
+  }
+
+  Future<void> _copyPath(
+    String from,
+    String to, {
+    bool overwrite = false,
+  }) async {
+    final fromDir = Directory(from);
+    final toDir = Directory(to);
+
+    await toDir.create(recursive: true);
+
+    await for (final file in fromDir.list(recursive: true)) {
+      if (file.path.contains('.backups')) {
+        _log.info('Skipping: ${file.path}');
+        continue;
+      }
+
+      final relativePath = file.path.substring(from.length + 1);
+      final destinationPath = '$to/$relativePath';
+
+      if (file is Directory) {
+        await Directory(destinationPath).create(recursive: true);
+      } else if (file is File) {
+        final destFile = File(destinationPath);
+        if (overwrite) {
+          if (await destFile.exists()) {
+            await destFile.delete();
+          }
+        }
+
+        await file.copy(destinationPath);
+      }
+    }
   }
 
   Future<void> _eventHandlerWrapper(
