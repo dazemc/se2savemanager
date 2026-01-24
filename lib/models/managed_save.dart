@@ -1,4 +1,5 @@
 class ManagedSave {
+  final bool isParent;
   final String name;
   final String path;
   final Map<String, String> children;
@@ -6,7 +7,20 @@ class ManagedSave {
     required this.name,
     required this.path,
     required this.children,
+    required this.isParent,
   });
 
-  //TODO: fromMap, toMap for hive
+  Map<String, dynamic> toMap() => {
+    'name': name,
+    'path': path,
+    'isParent': isParent,
+    'children': children,
+  };
+
+  factory ManagedSave.fromMap(Map<String, dynamic> map) => ManagedSave(
+    name: map['name'],
+    isParent: map['isParent'],
+    path: map['path'],
+    children: map['children'],
+  );
 }

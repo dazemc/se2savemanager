@@ -17,6 +17,7 @@ class SaveManager {
   final Future<void> Function(String) onChange;
   late final Directory _spaceEngineersSaveDirectory;
   late final Box box;
+  late final Box saveBox;
 
   late final SaveWatcher watcher;
   SaveManager({required this.onChange})
@@ -34,23 +35,39 @@ class SaveManager {
     // will also need to check if path is in .backups at some point
     final name = save.container.value.containerMeta.displayName;
     final path = save.dir.path;
-    final parent = box.get('managedSaves', defaultValue: {});
-    parent[name] ?? _log.info('Copying unmanaged save');
-    final newPath = '$path 2'; //TODO
+    final boxSave = saveBox.get(name, defaultValue: {});
+    late ManagedSave managedSave;
+    if (boxSave.isEmpty) {
+      _log.info('Copying unmanaged save');
+      managedSave = ManagedSave(
+        name: name,
+        path: path,
+        children: {},
+        isParent: true,
+      );
+    } else {
+      managedSave = ManagedSave.fromMap(boxSave);
+      _log.info('Save is managed: ${managedSave.toMap()}');
+    }
+    final children = managedSave.children.keys;
+    final count = children.isNotEmpty ? children.length + 2 : 2;
+    final newPath = '$path $count';
     _log.info('New path: $newPath');
     await _copyPath(path, newPath);
     final newSave = await Save.fromPath(newPath);
-    newSave.container.value.containerMeta.displayName = '$name 2';
-
-    // box.put('managedSaves', {
-    //   name: {'path': path, 'children': {}},
-    // });
+    newSave.container.value.containerMeta.displayName = '$name $count';
+    //TODO after making a managed save
+    // managedSave.children['$name $count'] = newPath;
     _log.info('Copying save: $name at $path');
   }
 
   Future<void> deleteSave(Save save) async {
-    await save.dir.delete();
-    await _resetLocalSaveStorage();
+    watcher.stop();
+    if (await save.dir.exists()) {
+      save.dir.delete(recursive: true);
+      await _resetLocalSaveStorage();
+    }
+    watcher.start();
   }
 
   Future<List<Save>> getLocalSaves() async {
@@ -116,8 +133,10 @@ class SaveManager {
     for (int i = 0; i < 10; i++) {
       try {
         await save.dir.rename('${save.dir.parent.path}/$newName');
+        break;
       } on FileSystemException catch (_) {
         await Future.delayed(const Duration(milliseconds: 50));
+        _log.warning('Waiting for filesystem to be free...');
       }
     }
   }
@@ -171,6 +190,7 @@ class SaveManager {
   Future<void> _initBox() async {
     Hive.init(installationDirectoryPath);
     box = await Hive.openBox('se2savemanager');
+    saveBox = await Hive.openBox('managedSaves');
     await _resetLocalSaveStorage();
   }
 
@@ -193,14 +213,45 @@ class SaveManager {
     }
   }
 
+  //   Future<void> _resetLocalSaveStorage() async {
+  //     Map<String, String> saves = {};
+  //     await for (FileSystemEntity e in _spaceEngineersSaveDirectory.list()) {
+  //       if (await File('${e.path}/.container-info').exists() && e is Directory) {
+  //         final save = await Save.fromDirectory(e);
+  //         saves[save.container.value.containerMeta.displayName] = e.path;
+  //       }
+  //     }
+  //     box.put('localSaves', saves);
+  //   }
+  // }
+
   Future<void> _resetLocalSaveStorage() async {
     Map<String, String> saves = {};
-    await for (FileSystemEntity e in _spaceEngineersSaveDirectory.list()) {
-      if (await File('${e.path}/.container-info').exists() && e is Directory) {
-        final save = await Save.fromDirectory(e);
-        saves[save.container.value.containerMeta.displayName] = e.path;
+
+    if (!await _spaceEngineersSaveDirectory.exists()) {
+      _log.warning(
+        'Save directory does not exist: ${_spaceEngineersSaveDirectory.path}',
+      );
+      box.put('localSaves', saves);
+      return;
+    }
+
+    await for (final e in _spaceEngineersSaveDirectory.list()) {
+      try {
+        if (e is Directory &&
+            await File('${e.path}/.container-info').exists()) {
+          final save = await Save.fromDirectory(e);
+          saves[save.container.value.containerMeta.displayName] = e.path;
+        }
+      } on PathNotFoundException catch (_) {
+        _log.warning('Skipping missing save directory: ${e.path}');
+        continue;
+      } on FileSystemException catch (_) {
+        _log.warning('Skipping inaccessible save directory: ${e.path}');
+        continue;
       }
     }
+
     box.put('localSaves', saves);
   }
 }

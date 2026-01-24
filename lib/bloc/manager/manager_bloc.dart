@@ -67,18 +67,8 @@ class ManagerBloc extends Bloc<ManagerEvent, ManagerState> {
     ManagerDeleteSave event,
     Emitter<ManagerState> emit,
   ) async {
-    //TODO: do this in service not here
     emit(ManagerBusy());
-    final saves = await saveManager.getLocalSaves();
-    final save = saves
-        .firstWhere(
-          (e) => e.container.value.containerMeta.displayName == event.name,
-        )
-        .dir;
-    if (await save.exists()) {
-      _log.warning('Deleting save: ${event.name}');
-      await save.delete(recursive: true);
-    }
+    await saveManager.deleteSave(event.save);
     emit(ManagerReady(saves: await saveManager.getLocalSaves()));
   }
 

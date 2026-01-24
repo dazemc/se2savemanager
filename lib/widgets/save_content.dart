@@ -154,7 +154,7 @@ ListView _saveContent(
                               color: Colors.red.lightest,
                             ),
                             onPressed: () =>
-                                managerBloc.add(ManagerDeleteSave(name: name)),
+                                managerBloc.add(ManagerDeleteSave(save: save)),
                           ),
                         ),
                       ],
