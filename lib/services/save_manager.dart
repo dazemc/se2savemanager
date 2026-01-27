@@ -33,6 +33,8 @@ class SaveManager {
   Future<void> copySave(Save save) async {
     //TODO: check if parent and if null, then check/count children and add with path
     // will also need to check if path is in .backups at some point
+    await watcher.stop();
+    _log.warning(watcher.isRunning);
     final name = save.container.value.containerMeta.displayName;
     final path = save.dir.path;
     final boxSave = saveBox.get(name, defaultValue: {});
@@ -56,13 +58,16 @@ class SaveManager {
     await _copyPath(path, newPath);
     final newSave = await Save.fromPath(newPath);
     newSave.container.value.containerMeta.displayName = '$name $count';
+    await _writeContainer(newSave, newPath, '$name $count');
     //TODO after making a managed save
     // managedSave.children['$name $count'] = newPath;
     _log.info('Copying save: $name at $path');
+    await _resetLocalSaveStorage();
+    watcher.start();
   }
 
   Future<void> deleteSave(Save save) async {
-    watcher.stop();
+    await watcher.stop();
     if (await save.dir.exists()) {
       save.dir.delete(recursive: true);
       await _resetLocalSaveStorage();
@@ -153,7 +158,7 @@ class SaveManager {
 
     await for (final file in fromDir.list(recursive: true)) {
       if (file.path.contains('.backups')) {
-        _log.info('Skipping: ${file.path}');
+        // _log.info('Skipping: ${file.path}');
         continue;
       }
 
@@ -179,9 +184,9 @@ class SaveManager {
     Future<void> Function(String) eventHandler,
     String path,
   ) async {
-    watcher.togglePause();
+    await watcher.stop();
     await eventHandler(path);
-    watcher.togglePause();
+    watcher.start();
   }
 
   Map<String, String> _getRawSaves() =>

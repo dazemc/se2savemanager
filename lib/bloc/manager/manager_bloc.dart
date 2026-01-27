@@ -80,8 +80,7 @@ class ManagerBloc extends Bloc<ManagerEvent, ManagerState> {
     _log.info(
       'Copying save: ${event.save.container.value.containerMeta.displayName}',
     );
-    saveManager.copySave(event.save);
-    //TODO: keep the parent entry with any copy as a child box[name]['children']
+    await saveManager.copySave(event.save);
     emit(ManagerReady(saves: await saveManager.getLocalSaves()));
   }
 }
