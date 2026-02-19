@@ -25,7 +25,5 @@ class SaveMeta {
   //   return SaveMeta.fromJson(jsonDecode(metaFile));
   // }
 
-  Map<String, dynamic> toJson() {
-    return {'slot': slot, 'parent': parent.path};
-  }
+  Map<String, dynamic> toJson() => {'slot': slot, 'parent': parent.path};
 }

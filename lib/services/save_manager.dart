@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:hive_ce/hive_ce.dart';
+import 'package:se2savemanager/hive/hive_registrar.g.dart';
 import 'package:logging/logging.dart';
 import 'package:se2savemanager/models/managed_save.dart';
 import 'package:se2savemanager/models/save.dart';
@@ -30,26 +31,29 @@ class SaveManager {
     _spaceEngineersSaveDirectory = Directory(spaceEngineersSaveDirectoryPath);
   }
 
+  ManagedSave getManagedSave(
+    Map<dynamic, dynamic> boxSave,
+    String name,
+    String path,
+  ) {
+    return boxSave.isEmpty
+        ? ManagedSave(name: name, path: path, children: {}, isParent: true)
+        : ManagedSave.fromMap(boxSave as Map<String, dynamic>);
+  }
+
   Future<void> copySave(Save save) async {
     //TODO: check if parent and if null, then check/count children and add with path
     // will also need to check if path is in .backups at some point
     await watcher.stop();
-    _log.warning(watcher.isRunning);
+    // assert(!watcher.isRunning);
     final name = save.container.value.containerMeta.displayName;
     final path = save.dir.path;
-    final boxSave = saveBox.get(name, defaultValue: {});
-    late ManagedSave managedSave;
-    if (boxSave.isEmpty) {
-      _log.info('Copying unmanaged save');
-      managedSave = ManagedSave(
-        name: name,
-        path: path,
-        children: {},
-        isParent: true,
-      );
-    } else {
-      managedSave = ManagedSave.fromMap(boxSave);
-      _log.info('Save is managed: ${managedSave.toMap()}');
+    _log.info(save.container.value.containerMeta.toString());
+    // final hash = fastHash(save.container.value.containerMeta.toString());
+    final localSave = saveBox.get(name, defaultValue: {});
+    final ManagedSave managedSave = getManagedSave(localSave, name, path);
+    if (!managedSave.isParent) {
+      _log.info('Descendant save: $name');
     }
     final children = managedSave.children.keys;
     final count = children.isNotEmpty ? children.length + 2 : 2;
@@ -62,12 +66,15 @@ class SaveManager {
     //TODO after making a managed save
     // managedSave.children['$name $count'] = newPath;
     _log.info('Copying save: $name at $path');
+    _log.info('Storing save: ${managedSave.toMap()}');
+    saveBox.put(name, managedSave);
     await _resetLocalSaveStorage();
     watcher.start();
   }
 
   Future<void> deleteSave(Save save) async {
     await watcher.stop();
+    assert(!watcher.isRunning);
     if (await save.dir.exists()) {
       save.dir.delete(recursive: true);
       await _resetLocalSaveStorage();
@@ -106,6 +113,7 @@ class SaveManager {
 
   Future<void> renameSave(String name, String newName) async {
     await watcher.stop();
+    // assert(!watcher.isRunning);
     final savesRaw = _getRawSaves();
     final path = savesRaw[name];
     final newSave = await Save.fromPath(path!);
@@ -185,6 +193,7 @@ class SaveManager {
     String path,
   ) async {
     await watcher.stop();
+    assert(!watcher.isRunning);
     await eventHandler(path);
     watcher.start();
   }
@@ -193,7 +202,9 @@ class SaveManager {
       box.get('localSaves') as Map<String, String>;
 
   Future<void> _initBox() async {
-    Hive.init(installationDirectoryPath);
+    Hive
+      ..init(installationDirectoryPath)
+      ..registerAdapters();
     box = await Hive.openBox('se2savemanager');
     saveBox = await Hive.openBox('managedSaves');
     await _resetLocalSaveStorage();
@@ -217,18 +228,6 @@ class SaveManager {
       }
     }
   }
-
-  //   Future<void> _resetLocalSaveStorage() async {
-  //     Map<String, String> saves = {};
-  //     await for (FileSystemEntity e in _spaceEngineersSaveDirectory.list()) {
-  //       if (await File('${e.path}/.container-info').exists() && e is Directory) {
-  //         final save = await Save.fromDirectory(e);
-  //         saves[save.container.value.containerMeta.displayName] = e.path;
-  //       }
-  //     }
-  //     box.put('localSaves', saves);
-  //   }
-  // }
 
   Future<void> _resetLocalSaveStorage() async {
     Map<String, String> saves = {};
