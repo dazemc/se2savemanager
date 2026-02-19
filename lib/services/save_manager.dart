@@ -31,30 +31,20 @@ class SaveManager {
     _spaceEngineersSaveDirectory = Directory(spaceEngineersSaveDirectoryPath);
   }
 
-  ManagedSave getManagedSave(
-    Map<dynamic, dynamic> boxSave,
-    String name,
-    String path,
-  ) {
-    return boxSave.isEmpty
-        ? ManagedSave(name: name, path: path, children: {}, isParent: true)
-        : ManagedSave.fromMap(boxSave as Map<String, dynamic>);
-  }
-
   Future<void> copySave(Save save) async {
     //TODO: check if parent and if null, then check/count children and add with path
     // will also need to check if path is in .backups at some point
+    //TODO: check for missing slots, ie name, name 3, name 4 => next save would be name 2 != name 4
     await watcher.stop();
+    await _checkManagedSaves();
     // assert(!watcher.isRunning);
     final name = save.container.value.containerMeta.displayName;
     final path = save.dir.path;
     _log.info(save.container.value.containerMeta.toString());
-    // final hash = fastHash(save.container.value.containerMeta.toString());
-    final localSave = saveBox.get(name, defaultValue: {});
-    final ManagedSave managedSave = getManagedSave(localSave, name, path);
-    if (!managedSave.isParent) {
-      _log.info('Descendant save: $name');
-    }
+    final ManagedSave managedSave =
+        saveBox.get(name) ??
+        ManagedSave(name: name, path: path, children: {}, isParent: true);
+    _log.warning('SAVE_CHECK: ${managedSave.toMap()}');
     final children = managedSave.children.keys;
     final count = children.isNotEmpty ? children.length + 2 : 2;
     final newPath = '$path $count';
@@ -63,10 +53,9 @@ class SaveManager {
     final newSave = await Save.fromPath(newPath);
     newSave.container.value.containerMeta.displayName = '$name $count';
     await _writeContainer(newSave, newPath, '$name $count');
-    //TODO after making a managed save
-    // managedSave.children['$name $count'] = newPath;
     _log.info('Copying save: $name at $path');
     _log.info('Storing save: ${managedSave.toMap()}');
+    managedSave.children['$name $count'] = newPath;
     saveBox.put(name, managedSave);
     await _resetLocalSaveStorage();
     watcher.start();
@@ -207,7 +196,31 @@ class SaveManager {
       ..registerAdapters();
     box = await Hive.openBox('se2savemanager');
     saveBox = await Hive.openBox('managedSaves');
+    await _checkManagedSaves();
     await _resetLocalSaveStorage();
+  }
+
+  Future<void> _checkManagedSaves() async {
+    for (String name in saveBox.keys.toList()) {
+      final ManagedSave save = saveBox.get(name);
+      _log.warning(save.path);
+      final dir = Directory(save.path);
+      if (!await dir.exists()) {
+        _log.warning('Save no longer exists: removing $name');
+        saveBox.delete(name);
+      } else {
+        for (MapEntry child in save.children.entries.toList()) {
+          final path = child.value;
+          final childDir = Directory(path);
+          if (!await childDir.exists()) {
+            _log.warning('Child save no longer exists: removing ${child.key}');
+            save.children.remove(child.key);
+            _log.warning(save.children);
+          }
+          saveBox.put(name, save);
+        }
+      }
+    }
   }
 
   Future<void> _install() async {

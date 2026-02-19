@@ -1,9 +1,9 @@
 class ManagedSave {
-  final bool isParent;
+  bool isParent;
   final String name;
   final String path;
   final Map<String, String> children;
-  const ManagedSave({
+  ManagedSave({
     required this.name,
     required this.path,
     required this.children,
