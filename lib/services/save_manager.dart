@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:hive_ce/hive_ce.dart';
-import 'package:se2savemanager/hive/hive_registrar.g.dart';
 import 'package:logging/logging.dart';
+import 'package:se2savemanager/hive/hive_registrar.g.dart';
 import 'package:se2savemanager/models/managed_save.dart';
 import 'package:se2savemanager/models/save.dart';
 import 'package:se2savemanager/services/save_watcher.dart';
@@ -39,24 +39,32 @@ class SaveManager {
     await _checkManagedSaves();
     // assert(!watcher.isRunning);
     final name = save.container.value.containerMeta.displayName;
-    final path = save.dir.path;
+    String path = save.dir.path;
+    _log.severe("CHECK: $path");
     _log.info(save.container.value.containerMeta.toString());
     final ManagedSave managedSave =
-        saveBox.get(name) ??
+        saveBox.get(path) ??
         ManagedSave(name: name, path: path, children: {}, isParent: true);
     _log.warning('SAVE_CHECK: ${managedSave.toMap()}');
     final children = managedSave.children.keys;
+    _log.warning('CHILDREN: $children');
     final count = children.isNotEmpty ? children.length + 2 : 2;
+    if (path.contains('.backups')) {
+      _log.info('Working with .backup save: $path');
+      managedSave.isParent = false;
+      path = path.substring(0, path.indexOf('.backups'));
+      _log.info('New path will be: $path');
+    }
     final newPath = '$path $count';
-    _log.info('New path: $newPath');
-    await _copyPath(path, newPath);
+    _log.info('Copying from: ${managedSave.path}\nto: $newPath');
+    await _copyPath(managedSave.path, newPath);
     final newSave = await Save.fromPath(newPath);
     newSave.container.value.containerMeta.displayName = '$name $count';
     await _writeContainer(newSave, newPath, '$name $count');
     _log.info('Copying save: $name at $path');
     _log.info('Storing save: ${managedSave.toMap()}');
     managedSave.children['$name $count'] = newPath;
-    saveBox.put(name, managedSave);
+    saveBox.put(path, managedSave);
     await _resetLocalSaveStorage();
     watcher.start();
   }
@@ -65,7 +73,7 @@ class SaveManager {
     await watcher.stop();
     assert(!watcher.isRunning);
     if (await save.dir.exists()) {
-      save.dir.delete(recursive: true);
+      await save.dir.delete(recursive: true);
       await _resetLocalSaveStorage();
     }
     watcher.start();
@@ -126,80 +134,6 @@ class SaveManager {
     watcher.start();
   }
 
-  Future<void> _writeContainer(Save save, String path, String newName) async {
-    JsonEncoder encoder = .withIndent(r'  ');
-    final prettyPrint = encoder.convert(save.container.toJson());
-    await File(
-      '$path/.container-info',
-    ).writeAsString(prettyPrint, mode: .write, flush: true);
-    for (int i = 0; i < 10; i++) {
-      try {
-        await save.dir.rename('${save.dir.parent.path}/$newName');
-        break;
-      } on FileSystemException catch (_) {
-        await Future.delayed(const Duration(milliseconds: 50));
-        _log.warning('Waiting for filesystem to be free...');
-      }
-    }
-  }
-
-  Future<void> _copyPath(
-    String from,
-    String to, {
-    bool overwrite = false,
-  }) async {
-    final fromDir = Directory(from);
-    final toDir = Directory(to);
-
-    await toDir.create(recursive: true);
-
-    await for (final file in fromDir.list(recursive: true)) {
-      if (file.path.contains('.backups')) {
-        // _log.info('Skipping: ${file.path}');
-        continue;
-      }
-
-      final relativePath = file.path.substring(from.length + 1);
-      final destinationPath = '$to/$relativePath';
-
-      if (file is Directory) {
-        await Directory(destinationPath).create(recursive: true);
-      } else if (file is File) {
-        final destFile = File(destinationPath);
-        if (overwrite) {
-          if (await destFile.exists()) {
-            await destFile.delete();
-          }
-        }
-
-        await file.copy(destinationPath);
-      }
-    }
-  }
-
-  Future<void> _eventHandlerWrapper(
-    Future<void> Function(String) eventHandler,
-    String path,
-  ) async {
-    await watcher.stop();
-    assert(!watcher.isRunning);
-    await eventHandler(path);
-    watcher.start();
-  }
-
-  Map<String, String> _getRawSaves() =>
-      box.get('localSaves') as Map<String, String>;
-
-  Future<void> _initBox() async {
-    Hive
-      ..init(installationDirectoryPath)
-      ..registerAdapters();
-    box = await Hive.openBox('se2savemanager');
-    saveBox = await Hive.openBox('managedSaves');
-    await _checkManagedSaves();
-    await _resetLocalSaveStorage();
-  }
-
   Future<void> _checkManagedSaves() async {
     for (String name in saveBox.keys.toList()) {
       final ManagedSave save = saveBox.get(name);
@@ -221,6 +155,70 @@ class SaveManager {
         }
       }
     }
+  }
+
+  Future<void> _copyPath(
+    String from,
+    String to, {
+    bool overwrite = false,
+  }) async {
+    final fromDir = Directory(from);
+    final toDir = Directory(to);
+
+    await toDir.create(recursive: true);
+
+    await for (final file in fromDir.list(recursive: true)) {
+      final relativePath = file.path.substring(from.length + 1);
+      final destinationPath = '$to/$relativePath';
+      if (file.path.contains('.backups')) {
+        //TODO
+        _log.warning('.backups not handled yet');
+        continue;
+      }
+
+      if (file is Directory) {
+        _log.info('Copying directory: ${file.path}');
+        await Directory(destinationPath).create(recursive: true);
+      } else if (file is File) {
+        _log.info('Copying file: ${file.path}');
+        final destFile = File(destinationPath);
+        _log.info('Destination: $destinationPath');
+        if (overwrite) {
+          if (await destFile.exists()) {
+            await destFile.delete();
+          }
+        }
+
+        await file.copy(destinationPath);
+      }
+    }
+  }
+
+  Future<void> _eventHandlerWrapper(
+    Future<void> Function(String) eventHandler,
+    String path,
+  ) async {
+    await watcher.stop();
+    await Future.delayed(.new(seconds: 1)); // wait for game to finish writing
+    _log.warning('NEW SAVE: $path');
+    final dir = await File(path).parent;
+    final save = await Save.fromDirectory(dir);
+    await copySave(save);
+    await eventHandler(path);
+    watcher.start();
+  }
+
+  Map<String, String> _getRawSaves() =>
+      box.get('localSaves') as Map<String, String>;
+
+  Future<void> _initBox() async {
+    Hive
+      ..init(installationDirectoryPath)
+      ..registerAdapters();
+    box = await Hive.openBox('se2savemanager');
+    saveBox = await Hive.openBox('managedSaves');
+    await _checkManagedSaves();
+    await _resetLocalSaveStorage();
   }
 
   Future<void> _install() async {
@@ -270,5 +268,22 @@ class SaveManager {
     }
 
     box.put('localSaves', saves);
+  }
+
+  Future<void> _writeContainer(Save save, String path, String newName) async {
+    JsonEncoder encoder = .withIndent(r'  ');
+    final prettyPrint = encoder.convert(save.container.toJson());
+    await File(
+      '$path/.container-info',
+    ).writeAsString(prettyPrint, mode: .write, flush: true);
+    for (int i = 0; i < 10; i++) {
+      try {
+        await save.dir.rename('${save.dir.parent.path}/$newName');
+        break;
+      } on FileSystemException catch (_) {
+        await Future.delayed(const Duration(milliseconds: 50));
+        _log.warning('Waiting for filesystem to be free...');
+      }
+    }
   }
 }
