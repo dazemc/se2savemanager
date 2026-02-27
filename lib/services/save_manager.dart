@@ -12,6 +12,7 @@ import 'save_logger.dart';
 
 class SaveManager {
   //TODO: Linux
+  final bool useTimeStamp = false; //TODO
   final Logger _log = SaveLogger(name: 'SaveManager').log;
   final String installationDirectoryPath;
   final String spaceEngineersSaveDirectoryPath;
@@ -57,10 +58,22 @@ class SaveManager {
     }
     final newPath = '$path $count';
     _log.info('Copying from: ${managedSave.path}\nto: $newPath');
-    await _copyPath(managedSave.path, newPath);
+    if (managedSave.path.contains('backups')) {
+      final backupParent = Directory(managedSave.path).parent.parent.path;
+      _log.warning('.backups detected, using parent instead: $backupParent');
+      await _copyPath(backupParent, newPath);
+    } else {
+      await _copyPath(managedSave.path, newPath);
+      _log.severe(managedSave.path);
+    }
     final newSave = await Save.fromPath(newPath);
-    newSave.container.value.containerMeta.displayName = '$name $count';
-    await _writeContainer(newSave, newPath, '$name $count');
+    final newName = '$name $count';
+    final now = DateTime.now();
+    final timeStamp = '$name $now';
+    newSave.container.value.containerMeta.displayName = useTimeStamp
+        ? timeStamp
+        : newName;
+    await _writeContainer(newSave, newPath, newName);
     _log.info('Copying save: $name at $path');
     _log.info('Storing save: ${managedSave.toMap()}');
     managedSave.children['$name $count'] = newPath;
@@ -166,23 +179,20 @@ class SaveManager {
     final toDir = Directory(to);
 
     await toDir.create(recursive: true);
-
     await for (final file in fromDir.list(recursive: true)) {
-      final relativePath = file.path.substring(from.length + 1);
-      final destinationPath = '$to/$relativePath';
-      if (file.path.contains('.backups')) {
-        //TODO
-        _log.warning('.backups not handled yet');
+      if (file.path.contains('backups')) {
         continue;
       }
+      final relativePath = file.path.substring(from.length + 1);
+      final destinationPath = '$to/$relativePath';
 
       if (file is Directory) {
-        _log.info('Copying directory: ${file.path}');
+        // _log.info('Copying directory: ${file.path}');
         await Directory(destinationPath).create(recursive: true);
       } else if (file is File) {
-        _log.info('Copying file: ${file.path}');
+        // _log.info('Copying file: ${file.path}');
         final destFile = File(destinationPath);
-        _log.info('Destination: $destinationPath');
+        // _log.info('Destination: $destinationPath');
         if (overwrite) {
           if (await destFile.exists()) {
             await destFile.delete();
@@ -201,7 +211,9 @@ class SaveManager {
     await watcher.stop();
     await Future.delayed(.new(seconds: 1)); // wait for game to finish writing
     _log.warning('NEW SAVE: $path');
-    final dir = await File(path).parent;
+    final dir = (path.contains('.backups'))
+        ? File(path).parent.parent.parent
+        : File(path).parent;
     final save = await Save.fromDirectory(dir);
     await copySave(save);
     await eventHandler(path);

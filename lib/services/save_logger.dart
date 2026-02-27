@@ -6,18 +6,28 @@ class SaveLogger {
   Logger log;
   Level level;
   final String name;
+  File? logfile;
   SaveLogger({this.name = 'Log', this.level = Level.ALL}) : log = Logger(name) {
     if (!_init) {
       Logger.root.level = level;
-      Logger.root.onRecord.listen(
-        (m) => stdout.writeln(
-          '${m.time}: '
-          '${m.level.name}: '
-          '${m.loggerName}: '
-          '${m.message}',
-        ),
-      );
+      Logger.root.onRecord.listen((m) {
+        String msg =
+            '${m.time}: '
+            '${m.level.name}: '
+            '${m.loggerName}: '
+            '${m.message}';
+        stdout.writeln(msg);
+        writeFile(logfile, msg);
+      });
       _init = true;
+    }
+  }
+
+  Future<void> writeFile(File? logfile, String msg) async {
+    if (logfile != null) {
+      if (await logfile.exists()) {
+        logfile.writeAsString(msg, mode: .append);
+      }
     }
   }
 }

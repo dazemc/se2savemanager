@@ -2,6 +2,7 @@ import 'package:fluent_ui/fluent_ui.dart';
 import 'package:se2savemanager/bloc/app/app_bloc.dart';
 import 'package:se2savemanager/bloc/manager/manager_bloc.dart';
 import 'package:se2savemanager/main.dart';
+import 'package:bitsdojo_window/bitsdojo_window.dart';
 
 Widget _determineSaveContent(
   AppState state,
@@ -39,7 +40,7 @@ ListView _saveContent(
           child: Column(
             children: [
               SizedBox(
-                width: 600,
+                width: .infinity,
                 child: Container(
                   decoration: BoxDecoration(
                     borderRadius: .circular(8),
@@ -62,77 +63,85 @@ ListView _saveContent(
                     ),
                     title: Row(
                       children: [
-                        state.editingIndex == index
-                            ? Row(
-                                children: [
-                                  SizedBox(
-                                    width: 182,
-                                    child: TextBox(
-                                      placeholder: name,
-                                      maxLines: 1,
-                                      onChanged: (value) => appBloc.add(
-                                        AppSaveNameChange(name: value),
+                        Expanded(
+                          child: state.editingIndex == index
+                              ? Row(
+                                  children: [
+                                    SizedBox(
+                                      width: 182,
+                                      child: TextBox(
+                                        placeholder: name,
+                                        maxLines: 1,
+                                        onChanged: (value) => appBloc.add(
+                                          AppSaveNameChange(name: value),
+                                        ),
+                                        onSubmitted: (value) {
+                                          managerBloc.add(
+                                            ManagerRenameSave(
+                                              name: name,
+                                              newName: value,
+                                            ),
+                                          );
+                                        },
                                       ),
-                                      onSubmitted: (value) {
-                                        managerBloc.add(
+                                    ),
+                                    Tooltip(
+                                      message: 'Accept',
+                                      child: IconButton(
+                                        icon: WindowsIcon(
+                                          FluentIcons.accept,
+                                          size: 10,
+                                          color: Colors.blue.lightest,
+                                        ),
+                                        onPressed: () => managerBloc.add(
                                           ManagerRenameSave(
                                             name: name,
-                                            newName: value,
+                                            newName: state.editingName ?? name,
                                           ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                  Tooltip(
-                                    message: 'Accept',
-                                    child: IconButton(
-                                      icon: WindowsIcon(
-                                        FluentIcons.accept,
-                                        size: 10,
-                                        color: Colors.blue.lightest,
-                                      ),
-                                      onPressed: () => managerBloc.add(
-                                        ManagerRenameSave(
-                                          name: name,
-                                          newName: state.editingName ?? name,
                                         ),
                                       ),
                                     ),
-                                  ),
-                                  Tooltip(
-                                    message: 'Cancel',
-                                    child: IconButton(
-                                      icon: WindowsIcon(
-                                        FluentIcons.cancel,
-                                        size: 10,
-                                        color: Colors.red.lightest,
-                                      ),
-                                      onPressed: () =>
-                                          appBloc.add(AppSaveNameCancel()),
-                                    ),
-                                  ),
-                                ],
-                              )
-                            : Row(
-                                crossAxisAlignment: .start,
-                                children: [
-                                  Text(name, style: .new(color: accentColor)),
-                                  Tooltip(
-                                    message: 'Rename',
-                                    child: IconButton(
-                                      icon: WindowsIcon(
-                                        FluentIcons.edit,
-                                        size: 10,
-                                        color: Colors.blue.lightest,
-                                      ),
-                                      onPressed: () => appBloc.add(
-                                        AppSaveNameEdit(index: index),
+                                    Tooltip(
+                                      message: 'Cancel',
+                                      child: IconButton(
+                                        icon: WindowsIcon(
+                                          FluentIcons.cancel,
+                                          size: 10,
+                                          color: Colors.red.lightest,
+                                        ),
+                                        onPressed: () =>
+                                            appBloc.add(AppSaveNameCancel()),
                                       ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                        Spacer(),
+                                  ],
+                                )
+                              : Row(
+                                  crossAxisAlignment: .start,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        maxLines: 1,
+                                        overflow: .ellipsis,
+                                        name,
+                                        style: .new(color: accentColor),
+                                      ),
+                                    ),
+                                    Tooltip(
+                                      message: 'Rename',
+                                      child: IconButton(
+                                        icon: WindowsIcon(
+                                          FluentIcons.edit,
+                                          size: 10,
+                                          color: Colors.blue.lightest,
+                                        ),
+                                        onPressed: () => appBloc.add(
+                                          AppSaveNameEdit(index: index),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                        ),
                         Tooltip(
                           message: 'Copy',
                           child: IconButton(
